@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Typography,
   Box,
-  Grid,
-  Card,
-  CardContent,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   CircularProgress,
   Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Button,
+  Chip,
 } from "@mui/material";
+import { format } from "date-fns";
 import { transactionApi } from "../services/api";
 
 // transaction history page component with filtering options
@@ -23,18 +23,12 @@ const TransactionHistory = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({
-    employee: "",
-    product: "",
-    startDate: "",
-    endDate: "",
-  });
 
   // fetch transactions function
-  const fetchTransactions = useCallback(async () => {
+  const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const data = await transactionApi.getAll(filters);
+      const data = await transactionApi.getAll();
       setTransactions(data);
       setError(null);
     } catch (err) {
@@ -42,100 +36,94 @@ const TransactionHistory = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  };
 
   // fetch transactions on component mount and filter changes
   useEffect(() => {
     fetchTransactions();
-  }, [fetchTransactions]);
+  }, []);
 
-  // handle filter change
-  const handleFilterChange = (field) => (event) => {
-    setFilters({
-      ...filters,
-      [field]: event.target.value,
-    });
+  const getTransactionColor = (type) => {
+    switch (type) {
+      case "SALE":
+        return "error";
+      case "ADD":
+        return "success";
+      case "EDIT":
+        return "warning";
+      case "DELETE":
+        return "error";
+      default:
+        return "default";
+    }
   };
 
-  // handle reset filters
-  const handleResetFilters = () => {
-    setFilters({
-      employee: "",
-      product: "",
-      startDate: "",
-      endDate: "",
-    });
+  const renderTransactionDetails = (transaction) => {
+    switch (transaction.type) {
+      case "SALE":
+        return (
+          <>
+            <Typography variant="body2">
+              Sold {transaction.quantity} units of {transaction.product.name}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Remaining Stock: {transaction.remainingQuantity} | Backup:{" "}
+              {transaction.backupQuantity}
+            </Typography>
+          </>
+        );
+      case "ADD":
+        return (
+          <Typography variant="body2">
+            Added {transaction.quantity} units of {transaction.product.name}
+          </Typography>
+        );
+      case "EDIT":
+        return (
+          <Box>
+            <Typography variant="body2">
+              Updated {transaction.product.name}:
+            </Typography>
+            {Object.entries(transaction.newData).map(([key, value], index) => {
+              const oldValue = transaction.previousData[key];
+              if (oldValue !== value) {
+                return (
+                  <Typography key={index} variant="body2" color="textSecondary">
+                    {key}: {oldValue} → {value}
+                  </Typography>
+                );
+              }
+              return null;
+            })}
+          </Box>
+        );
+      case "DELETE":
+        return (
+          <Typography variant="body2">
+            Deleted product: {transaction.product.name}
+          </Typography>
+        );
+      default:
+        return null;
+    }
   };
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
+      <Box sx={{ mt: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Transaction History
         </Typography>
-
-        {/* filters */}
-        <Card sx={{ mb: 4 }}>
-          <CardContent>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth>
-                  <InputLabel>Employee</InputLabel>
-                  <Select
-                    value={filters.employee}
-                    onChange={handleFilterChange("employee")}
-                    label="Employee"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {/* Add employee options here */}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth>
-                  <InputLabel>Product</InputLabel>
-                  <Select
-                    value={filters.product}
-                    onChange={handleFilterChange("product")}
-                    label="Product"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {/* Add product options here */}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  label="Start Date"
-                  value={filters.startDate}
-                  onChange={handleFilterChange("startDate")}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  label="End Date"
-                  value={filters.endDate}
-                  onChange={handleFilterChange("endDate")}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  variant="outlined"
-                  onClick={handleResetFilters}
-                  sx={{ mt: 2 }}
-                >
-                  Reset Filters
-                </Button>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
 
         {/* error alert */}
         {error && (
@@ -144,41 +132,39 @@ const TransactionHistory = () => {
           </Alert>
         )}
 
-        {/* loading state */}
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          /* transactions list */
-          <Grid container spacing={2}>
-            {transactions.map((transaction) => (
-              <Grid item xs={12} key={transaction._id}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6">
-                      {transaction.product?.name}
-                    </Typography>
-                    <Typography color="textSecondary">
-                      Quantity: {transaction.quantity}
-                    </Typography>
-                    <Typography color="textSecondary">
-                      Employee: {transaction.employee?.name}
-                    </Typography>
-                    <Typography color="textSecondary">
-                      Date: {new Date(transaction.date).toLocaleDateString()}
-                    </Typography>
-                    {transaction.notes && (
-                      <Typography color="textSecondary">
-                        Notes: {transaction.notes}
-                      </Typography>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Type</TableCell>
+                <TableCell>Details</TableCell>
+                <TableCell>Employee</TableCell>
+                <TableCell>Date & Time</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {transactions.map((transaction) => (
+                <TableRow key={transaction._id}>
+                  <TableCell>
+                    <Chip
+                      label={transaction.type}
+                      color={getTransactionColor(transaction.type)}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>{renderTransactionDetails(transaction)}</TableCell>
+                  <TableCell>{transaction.employee.name}</TableCell>
+                  <TableCell>
+                    {format(
+                      new Date(transaction.date),
+                      "MMM dd, yyyy HH:mm:ss"
                     )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
     </Container>
   );

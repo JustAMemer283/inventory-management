@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 // transaction schema
 const transactionSchema = new mongoose.Schema(
   {
+    type: {
+      type: String,
+      required: true,
+      enum: ["SALE", "EDIT", "DELETE", "ADD"],
+    },
     product: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
@@ -15,8 +20,34 @@ const transactionSchema = new mongoose.Schema(
     },
     quantity: {
       type: Number,
-      required: true,
+      required: function () {
+        return this.type === "SALE" || this.type === "ADD";
+      },
       min: 1,
+    },
+    previousData: {
+      type: Object,
+      required: function () {
+        return this.type === "EDIT";
+      },
+    },
+    newData: {
+      type: Object,
+      required: function () {
+        return this.type === "EDIT";
+      },
+    },
+    remainingQuantity: {
+      type: Number,
+      required: function () {
+        return this.type === "SALE";
+      },
+    },
+    backupQuantity: {
+      type: Number,
+      required: function () {
+        return this.type === "SALE";
+      },
     },
     date: {
       type: Date,
@@ -34,7 +65,6 @@ const transactionSchema = new mongoose.Schema(
 
 // create indexes for better query performance
 transactionSchema.index({ product: 1, date: -1 });
-transactionSchema.index({ employee: 1, date: -1 });
-transactionSchema.index({ date: -1 });
+transactionSchema.index({ type: 1, date: -1 });
 
 module.exports = mongoose.model("Transaction", transactionSchema);

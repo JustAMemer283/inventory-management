@@ -16,11 +16,13 @@ import {
   Card,
   CardContent,
   CardActions,
+  Autocomplete,
 } from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
+  Inventory as InventoryIcon,
 } from "@mui/icons-material";
 import { productApi } from "../services/api";
 
@@ -38,6 +40,12 @@ const Inventory = () => {
     quantity: "",
     backupQuantity: "",
     price: "",
+  });
+  const [openUpdateStock, setOpenUpdateStock] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [updateQuantities, setUpdateQuantities] = useState({
+    quantity: "",
+    backupQuantity: "",
   });
 
   // fetch products on component mount
@@ -158,6 +166,50 @@ const Inventory = () => {
     }
   };
 
+  const handleUpdateStockOpen = () => {
+    setOpenUpdateStock(true);
+  };
+
+  const handleUpdateStockClose = () => {
+    setOpenUpdateStock(false);
+    setSelectedProduct(null);
+    setUpdateQuantities({
+      quantity: "",
+      backupQuantity: "",
+    });
+  };
+
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product);
+    setUpdateQuantities({
+      quantity: "",
+      backupQuantity: "",
+    });
+  };
+
+  const handleUpdateStock = async () => {
+    try {
+      if (!selectedProduct) return;
+
+      const submissionData = {
+        ...selectedProduct,
+        quantity:
+          Number(selectedProduct.quantity) +
+          Number(updateQuantities.quantity || 0),
+        backupQuantity:
+          Number(selectedProduct.backupQuantity) +
+          Number(updateQuantities.backupQuantity || 0),
+      };
+
+      await productApi.update(selectedProduct._id, submissionData);
+      await fetchProducts();
+      handleUpdateStockClose();
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // render loading state
   if (loading) {
     return (
@@ -176,13 +228,22 @@ const Inventory = () => {
           <Typography variant="h4" component="h1">
             Inventory Management
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-          >
-            Add Product
-          </Button>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="contained"
+              startIcon={<InventoryIcon />}
+              onClick={handleUpdateStockOpen}
+            >
+              Update Stock
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+            >
+              Add Product
+            </Button>
+          </Box>
         </Box>
 
         {/* error alert */}
@@ -232,6 +293,85 @@ const Inventory = () => {
             </Grid>
           ))}
         </Grid>
+
+        {/* Update Stock Dialog */}
+        <Dialog
+          open={openUpdateStock}
+          onClose={handleUpdateStockClose}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Update Stock</DialogTitle>
+          <DialogContent>
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
+            >
+              <Autocomplete
+                options={products}
+                getOptionLabel={(option) => `${option.name} - ${option.brand}`}
+                value={selectedProduct}
+                onChange={(event, newValue) => handleProductSelect(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search Product"
+                    required
+                    fullWidth
+                  />
+                )}
+              />
+              {selectedProduct && (
+                <>
+                  <Typography variant="body2" color="textSecondary">
+                    Current Stock: {selectedProduct.quantity}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Current Backup: {selectedProduct.backupQuantity}
+                  </Typography>
+                  <TextField
+                    label="Add to Stock"
+                    type="number"
+                    value={updateQuantities.quantity}
+                    onChange={(e) =>
+                      setUpdateQuantities({
+                        ...updateQuantities,
+                        quantity: e.target.value,
+                      })
+                    }
+                    fullWidth
+                    inputProps={{ min: 0 }}
+                  />
+                  <TextField
+                    label="Add to Backup"
+                    type="number"
+                    value={updateQuantities.backupQuantity}
+                    onChange={(e) =>
+                      setUpdateQuantities({
+                        ...updateQuantities,
+                        backupQuantity: e.target.value,
+                      })
+                    }
+                    fullWidth
+                    inputProps={{ min: 0 }}
+                  />
+                </>
+              )}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleUpdateStockClose}>Cancel</Button>
+            <Button
+              onClick={handleUpdateStock}
+              variant="contained"
+              disabled={
+                !selectedProduct ||
+                (!updateQuantities.quantity && !updateQuantities.backupQuantity)
+              }
+            >
+              Update
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* add/edit dialog */}
         <Dialog
