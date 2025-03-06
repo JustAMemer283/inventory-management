@@ -1,15 +1,23 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material";
-import CssBaseline from "@mui/material/CssBaseline";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Navigation from "./components/Navigation";
+import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Inventory from "./pages/Inventory";
+import Sales from "./pages/Sales";
+import TransactionHistory from "./pages/TransactionHistory";
 
 // create theme
 const theme = createTheme({
   palette: {
-    mode: "light",
     primary: {
       main: "#1976d2",
     },
@@ -19,27 +27,58 @@ const theme = createTheme({
   },
 });
 
-// main app component
-function App() {
+// app component
+const App = () => {
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <div className="app">
+      <AuthProvider>
+        <Router>
           <Navigation />
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/sales" element={<div>sales page</div>} />
+            {/* public routes */}
+            <Route path="/login" element={<Login />} />
+
+            {/* protected routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory"
+              element={
+                <ProtectedRoute adminOnly>
+                  <Inventory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales"
+              element={
+                <ProtectedRoute>
+                  <Sales />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/transactions"
-              element={<div>transactions page</div>}
+              element={
+                <ProtectedRoute>
+                  <TransactionHistory />
+                </ProtectedRoute>
+              }
             />
+
+            {/* catch all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </div>
-      </Router>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
-}
+};
 
 export default App;

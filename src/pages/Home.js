@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Container, Typography, Box, TextField, Button } from "@mui/material";
+import { Container, Typography, Box, TextField } from "@mui/material";
 
 // home page component with real-time updates
 const Home = () => {
   const [welcomeMessage, setWelcomeMessage] = useState(
-    "welcome to inventory management system"
+    "Welcome to Inventory Management System"
   );
 
   // handle message update
@@ -21,13 +21,13 @@ const Home = () => {
         <Box sx={{ mt: 2 }}>
           <TextField
             fullWidth
-            label="update welcome message"
+            label="Update Welcome Message"
             value={welcomeMessage}
             onChange={handleUpdateMessage}
             sx={{ mb: 2 }}
           />
-          <Typography variant="body2" color="text.secondary">
-            try editing the message above to see real-time updates
+          <Typography variant="body2" color="textSecondary">
+            Try editing the message above to see real-time updates
           </Typography>
         </Box>
       </Box>
