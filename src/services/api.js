@@ -17,7 +17,7 @@ export const productApi = {
   },
 
   // add new product
-  add: async (productData) => {
+  create: async (productData) => {
     const response = await api.post("/products", productData);
     return response.data;
   },
@@ -25,6 +25,12 @@ export const productApi = {
   // update product
   update: async (id, productData) => {
     const response = await api.put(`/products/${id}`, productData);
+    return response.data;
+  },
+
+  // update stock
+  updateStock: async (id, stockData) => {
+    const response = await api.put(`/products/${id}/stock`, stockData);
     return response.data;
   },
 

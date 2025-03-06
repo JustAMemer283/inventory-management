@@ -58,6 +58,69 @@ router.post("/", auth, admin, async (req, res) => {
   }
 });
 
+// update stock
+router.put("/:id/stock", auth, admin, async (req, res) => {
+  try {
+    const { quantity, backupQuantity } = req.body;
+
+    // Validate quantity fields
+    if (quantity == null && backupQuantity == null) {
+      return res
+        .status(400)
+        .json({ message: "At least one quantity field is required" });
+    }
+
+    // Get the current product data
+    const currentProduct = await Product.findById(req.params.id);
+    if (!currentProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Calculate new quantities
+    const newQuantity =
+      quantity != null
+        ? Number(currentProduct.quantity) + Number(quantity)
+        : currentProduct.quantity;
+    const newBackupQuantity =
+      backupQuantity != null
+        ? Number(currentProduct.backupQuantity) + Number(backupQuantity)
+        : currentProduct.backupQuantity;
+
+    // Update the product
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      {
+        quantity: newQuantity,
+        backupQuantity: newBackupQuantity,
+      },
+      { new: true }
+    );
+
+    // Create transaction record
+    const transaction = new Transaction({
+      type: "ADD",
+      product: product._id,
+      employee: req.user._id,
+      quantity: quantity || backupQuantity,
+      previousData: {
+        quantity: currentProduct.quantity,
+        backupQuantity: currentProduct.backupQuantity,
+      },
+      newData: {
+        quantity: newQuantity,
+        backupQuantity: newBackupQuantity,
+      },
+      notes: "Stock update",
+    });
+
+    await transaction.save();
+    res.json(product);
+  } catch (error) {
+    console.error("Error updating stock:", error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // update product
 router.put("/:id", auth, admin, async (req, res) => {
   try {
@@ -89,14 +152,6 @@ router.put("/:id", auth, admin, async (req, res) => {
       price: Number(price),
     };
 
-    // Check if this is a stock update (only quantity changes)
-    const isStockUpdate =
-      name === currentProduct.name &&
-      brand === currentProduct.brand &&
-      price === currentProduct.price &&
-      (quantity !== currentProduct.quantity ||
-        backupQuantity !== currentProduct.backupQuantity);
-
     // Update the product
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
@@ -105,15 +160,9 @@ router.put("/:id", auth, admin, async (req, res) => {
 
     // Create transaction record
     const transaction = new Transaction({
-      type: isStockUpdate ? "ADD" : "EDIT",
+      type: "EDIT",
       product: product._id,
       employee: req.user._id,
-      ...(isStockUpdate && {
-        quantity: Math.max(
-          Number(quantity) - currentProduct.quantity,
-          Number(backupQuantity) - currentProduct.backupQuantity
-        ),
-      }),
       previousData: {
         name: currentProduct.name,
         brand: currentProduct.brand,
@@ -122,7 +171,7 @@ router.put("/:id", auth, admin, async (req, res) => {
         price: currentProduct.price,
       },
       newData: updateData,
-      notes: isStockUpdate ? "Stock update" : "Product details updated",
+      notes: "Product details updated",
     });
 
     await transaction.save();

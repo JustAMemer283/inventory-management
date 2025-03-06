@@ -14,7 +14,7 @@ import {
   Alert,
   Chip,
 } from "@mui/material";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { transactionApi } from "../services/api";
 
 // transaction history page component with filtering options
@@ -59,12 +59,17 @@ const TransactionHistory = () => {
   };
 
   const renderTransactionDetails = (transaction) => {
+    // Handle case where product is null (deleted product)
+    const productName = transaction.product
+      ? transaction.product.name
+      : "Unknown Product";
+
     switch (transaction.type) {
       case "SALE":
         return (
           <>
             <Typography variant="body2">
-              Sold {transaction.quantity} units of {transaction.product.name}
+              Sold {transaction.quantity} units of {productName}
             </Typography>
             <Typography variant="body2" color="textSecondary">
               Remaining Stock: {transaction.remainingQuantity} | Backup:{" "}
@@ -75,37 +80,74 @@ const TransactionHistory = () => {
       case "ADD":
         return (
           <Typography variant="body2">
-            Added {transaction.quantity} units of {transaction.product.name}
+            Added {transaction.quantity} units of {productName}
           </Typography>
         );
       case "EDIT":
         return (
           <Box>
-            <Typography variant="body2">
-              Updated {transaction.product.name}:
-            </Typography>
-            {Object.entries(transaction.newData).map(([key, value], index) => {
-              const oldValue = transaction.previousData[key];
-              if (oldValue !== value) {
-                return (
-                  <Typography key={index} variant="body2" color="textSecondary">
-                    {key}: {oldValue} → {value}
-                  </Typography>
-                );
+            <Typography variant="body2">Updated {productName}:</Typography>
+            {Object.entries(transaction.newData || {}).map(
+              ([key, value], index) => {
+                const oldValue = transaction.previousData?.[key];
+                if (oldValue !== value) {
+                  return (
+                    <Typography
+                      key={index}
+                      variant="body2"
+                      color="textSecondary"
+                    >
+                      {key}: {oldValue} → {value}
+                    </Typography>
+                  );
+                }
+                return null;
               }
-              return null;
-            })}
+            )}
           </Box>
         );
       case "DELETE":
         return (
           <Typography variant="body2">
-            Deleted product: {transaction.product.name}
+            Deleted product: {transaction.notes?.split(": ")[1] || productName}
           </Typography>
         );
       default:
         return null;
     }
+  };
+
+  // Group transactions by date
+  const groupTransactionsByDate = (transactions) => {
+    const groups = [];
+    let currentDate = null;
+    let currentGroup = [];
+
+    transactions.forEach((transaction) => {
+      const transactionDate = new Date(transaction.date);
+
+      if (!currentDate || !isSameDay(currentDate, transactionDate)) {
+        if (currentGroup.length > 0) {
+          groups.push({
+            date: currentDate,
+            transactions: currentGroup,
+          });
+        }
+        currentDate = transactionDate;
+        currentGroup = [transaction];
+      } else {
+        currentGroup.push(transaction);
+      }
+    });
+
+    if (currentGroup.length > 0) {
+      groups.push({
+        date: currentDate,
+        transactions: currentGroup,
+      });
+    }
+
+    return groups;
   };
 
   if (loading) {
@@ -117,6 +159,8 @@ const TransactionHistory = () => {
       </Container>
     );
   }
+
+  const transactionGroups = groupTransactionsByDate(transactions);
 
   return (
     <Container maxWidth="lg">
@@ -139,28 +183,47 @@ const TransactionHistory = () => {
                 <TableCell>Type</TableCell>
                 <TableCell>Details</TableCell>
                 <TableCell>Employee</TableCell>
-                <TableCell>Date & Time</TableCell>
+                <TableCell>Time</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {transactions.map((transaction) => (
-                <TableRow key={transaction._id}>
-                  <TableCell>
-                    <Chip
-                      label={transaction.type}
-                      color={getTransactionColor(transaction.type)}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{renderTransactionDetails(transaction)}</TableCell>
-                  <TableCell>{transaction.employee.name}</TableCell>
-                  <TableCell>
-                    {format(
-                      new Date(transaction.date),
-                      "MMM dd, yyyy HH:mm:ss"
-                    )}
-                  </TableCell>
-                </TableRow>
+              {transactionGroups.map((group, groupIndex) => (
+                <React.Fragment key={group.date.toISOString()}>
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      sx={{
+                        backgroundColor: "action.hover",
+                        py: 1,
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontWeight: "medium" }}
+                      >
+                        {format(group.date, "EEEE, MMMM d, yyyy")}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                  {group.transactions.map((transaction) => (
+                    <TableRow key={transaction._id}>
+                      <TableCell>
+                        <Chip
+                          label={transaction.type}
+                          color={getTransactionColor(transaction.type)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {renderTransactionDetails(transaction)}
+                      </TableCell>
+                      <TableCell>{transaction.employee.name}</TableCell>
+                      <TableCell>
+                        {format(new Date(transaction.date), "HH:mm:ss")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>

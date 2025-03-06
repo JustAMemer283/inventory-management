@@ -20,12 +20,24 @@ router.get("/", auth, async (req, res) => {
     }
 
     const transactions = await Transaction.find(query)
-      .populate("product", "name brand")
+      .populate({
+        path: "product",
+        select: "name brand",
+        // Handle deleted products by using the stored data
+        transform: (doc) => {
+          if (!doc) {
+            // If product is deleted, return null but let the frontend handle it
+            return null;
+          }
+          return doc;
+        },
+      })
       .populate("employee", "name")
       .sort({ date: -1 });
 
     res.json(transactions);
   } catch (error) {
+    console.error("Error fetching transactions:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

@@ -141,7 +141,7 @@ const Inventory = () => {
         console.log("Update response:", updated);
       } else {
         console.log("Adding new product");
-        const added = await productApi.add(submissionData);
+        const added = await productApi.create(submissionData);
         console.log("Add response:", added);
       }
       await fetchProducts();
@@ -149,7 +149,7 @@ const Inventory = () => {
       setError(null);
     } catch (err) {
       console.error("Error submitting form:", err);
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     }
   };
 
@@ -191,22 +191,18 @@ const Inventory = () => {
     try {
       if (!selectedProduct) return;
 
-      const submissionData = {
-        ...selectedProduct,
-        quantity:
-          Number(selectedProduct.quantity) +
-          Number(updateQuantities.quantity || 0),
-        backupQuantity:
-          Number(selectedProduct.backupQuantity) +
-          Number(updateQuantities.backupQuantity || 0),
+      const stockData = {
+        quantity: updateQuantities.quantity || null,
+        backupQuantity: updateQuantities.backupQuantity || null,
       };
 
-      await productApi.update(selectedProduct._id, submissionData);
+      await productApi.updateStock(selectedProduct._id, stockData);
       await fetchProducts();
       handleUpdateStockClose();
       setError(null);
     } catch (err) {
-      setError(err.message);
+      console.error("Error updating stock:", err);
+      setError(err.response?.data?.message || err.message);
     }
   };
 
