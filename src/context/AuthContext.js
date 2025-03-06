@@ -19,17 +19,9 @@ export const AuthProvider = ({ children }) => {
   // check if user is authenticated
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
       const userData = await authApi.getCurrentUser();
       setUser(userData);
     } catch (err) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
       setError(err.message);
     } finally {
       setLoading(false);
@@ -40,8 +32,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const response = await authApi.login(credentials);
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
       setUser(response.user);
       return response;
     } catch (err) {
@@ -51,11 +41,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   // logout function
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
-    setError(null);
+  const logout = async () => {
+    try {
+      await authApi.logout();
+      setUser(null);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   // value object for context

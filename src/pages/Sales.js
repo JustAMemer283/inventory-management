@@ -115,24 +115,15 @@ const Sales = () => {
           {products.map((product) => (
             <Grid item xs={12} sm={6} md={4} key={product._id}>
               <Card>
-                {product.imageUrl && (
-                  <Box
-                    component="img"
-                    src={product.imageUrl}
-                    alt={product.name}
-                    sx={{
-                      width: "100%",
-                      height: 200,
-                      objectFit: "cover",
-                    }}
-                  />
-                )}
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
                     {product.name}
                   </Typography>
                   <Typography color="textSecondary" gutterBottom>
                     Brand: {product.brand}
+                  </Typography>
+                  <Typography variant="body2" gutterBottom>
+                    Price: ${product.price}
                   </Typography>
                   <Typography variant="body2">
                     Available: {product.quantity}

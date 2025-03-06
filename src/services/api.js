@@ -5,15 +5,7 @@ const API_URL = "http://localhost:5000/api";
 // create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
-});
-
-// add token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true, // enable sending cookies
 });
 
 // product api service
@@ -71,6 +63,12 @@ export const authApi = {
   // get current user
   getCurrentUser: async () => {
     const response = await api.get("/auth/me");
+    return response.data;
+  },
+
+  // logout
+  logout: async () => {
+    const response = await api.post("/auth/logout");
     return response.data;
   },
 };

@@ -8,33 +8,21 @@ const { auth } = require("../middleware/auth");
 router.get("/", auth, async (req, res) => {
   try {
     const { employee, product, startDate, endDate } = req.query;
-
-    // build query
     const query = {};
 
-    if (employee) {
-      query.employee = employee;
-    }
-
-    if (product) {
-      query.product = product;
-    }
-
+    // apply filters
+    if (employee) query.employee = employee;
+    if (product) query.product = product;
     if (startDate || endDate) {
-      query.timestamp = {};
-      if (startDate) {
-        query.timestamp.$gte = new Date(startDate);
-      }
-      if (endDate) {
-        query.timestamp.$lte = new Date(endDate);
-      }
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
     }
 
-    // get transactions with populated fields
     const transactions = await Transaction.find(query)
       .populate("product", "name brand")
       .populate("employee", "name")
-      .sort({ timestamp: -1 });
+      .sort({ date: -1 });
 
     res.json(transactions);
   } catch (error) {
@@ -42,44 +30,17 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-// record sale
+// create new transaction
 router.post("/", auth, async (req, res) => {
   try {
-    const { productId, quantity } = req.body;
-
-    // find product
-    const product = await Product.findById(productId);
-
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    // check if enough stock
-    if (product.quantity < quantity) {
-      return res.status(400).json({ message: "Not enough stock" });
-    }
-
-    // create transaction
     const transaction = new Transaction({
-      product: productId,
+      ...req.body,
       employee: req.user._id,
-      quantity,
     });
-
     await transaction.save();
-
-    // update product quantity
-    product.quantity -= quantity;
-    await product.save();
-
-    // get populated transaction
-    const populatedTransaction = await Transaction.findById(transaction._id)
-      .populate("product", "name brand")
-      .populate("employee", "name");
-
-    res.status(201).json(populatedTransaction);
+    res.status(201).json(transaction);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(400).json({ message: error.message });
   }
 });
 

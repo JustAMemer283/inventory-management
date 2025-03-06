@@ -18,9 +18,13 @@ const transactionSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
-    timestamp: {
+    date: {
       type: Date,
       default: Date.now,
+    },
+    notes: {
+      type: String,
+      trim: true,
     },
   },
   {
@@ -29,8 +33,8 @@ const transactionSchema = new mongoose.Schema(
 );
 
 // create indexes for better query performance
-transactionSchema.index({ product: 1, timestamp: -1 });
-transactionSchema.index({ employee: 1, timestamp: -1 });
-transactionSchema.index({ timestamp: -1 });
+transactionSchema.index({ product: 1, date: -1 });
+transactionSchema.index({ employee: 1, date: -1 });
+transactionSchema.index({ date: -1 });
 
 module.exports = mongoose.model("Transaction", transactionSchema);

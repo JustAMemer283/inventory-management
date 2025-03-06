@@ -37,7 +37,7 @@ const Inventory = () => {
     brand: "",
     quantity: "",
     backupQuantity: "",
-    imageUrl: "",
+    price: "",
   });
 
   // fetch products on component mount
@@ -50,9 +50,11 @@ const Inventory = () => {
     try {
       setLoading(true);
       const data = await productApi.getAll();
+      console.log("Fetched products:", data);
       setProducts(data);
       setError(null);
     } catch (err) {
+      console.error("Error fetching products:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -61,9 +63,15 @@ const Inventory = () => {
 
   // handle form input change
   const handleInputChange = (field) => (event) => {
+    let value = event.target.value;
+    // Convert numeric fields to numbers
+    if (["quantity", "backupQuantity", "price"].includes(field)) {
+      value = value === "" ? "" : Number(value);
+    }
+    console.log(`Setting ${field} to:`, value);
     setFormData({
       ...formData,
-      [field]: event.target.value,
+      [field]: value,
     });
   };
 
@@ -74,9 +82,9 @@ const Inventory = () => {
       setFormData({
         name: product.name,
         brand: product.brand,
-        quantity: product.quantity,
-        backupQuantity: product.backupQuantity,
-        imageUrl: product.imageUrl || "",
+        quantity: Number(product.quantity),
+        backupQuantity: Number(product.backupQuantity),
+        price: Number(product.price),
       });
     } else {
       setEditingProduct(null);
@@ -85,7 +93,7 @@ const Inventory = () => {
         brand: "",
         quantity: "",
         backupQuantity: "",
-        imageUrl: "",
+        price: "",
       });
     }
     setOpenDialog(true);
@@ -100,22 +108,39 @@ const Inventory = () => {
       brand: "",
       quantity: "",
       backupQuantity: "",
-      imageUrl: "",
+      price: "",
     });
   };
 
   // handle form submit
   const handleSubmit = async () => {
     try {
+      // Convert all numeric fields to numbers before submission
+      const submissionData = {
+        ...formData,
+        quantity: Number(formData.quantity),
+        backupQuantity: Number(formData.backupQuantity),
+        price: Number(formData.price),
+      };
+      console.log("Submitting data:", submissionData);
+
       if (editingProduct) {
-        await productApi.update(editingProduct._id, formData);
+        console.log("Updating product:", editingProduct._id);
+        const updated = await productApi.update(
+          editingProduct._id,
+          submissionData
+        );
+        console.log("Update response:", updated);
       } else {
-        await productApi.add(formData);
+        console.log("Adding new product");
+        const added = await productApi.add(submissionData);
+        console.log("Add response:", added);
       }
       await fetchProducts();
       handleCloseDialog();
       setError(null);
     } catch (err) {
+      console.error("Error submitting form:", err);
       setError(err.message);
     }
   };
@@ -172,18 +197,6 @@ const Inventory = () => {
           {products.map((product) => (
             <Grid item xs={12} sm={6} md={4} key={product._id}>
               <Card>
-                {product.imageUrl && (
-                  <Box
-                    component="img"
-                    src={product.imageUrl}
-                    alt={product.name}
-                    sx={{
-                      width: "100%",
-                      height: 200,
-                      objectFit: "cover",
-                    }}
-                  />
-                )}
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
                     {product.name}
@@ -191,11 +204,14 @@ const Inventory = () => {
                   <Typography color="textSecondary" gutterBottom>
                     Brand: {product.brand}
                   </Typography>
-                  <Typography variant="body2">
-                    Quantity: {product.quantity}
+                  <Typography variant="body2" gutterBottom>
+                    Price: ${product.price ? product.price.toFixed(2) : "0.00"}
                   </Typography>
                   <Typography variant="body2">
-                    Backup Quantity: {product.backupQuantity}
+                    Available: {product.quantity}
+                  </Typography>
+                  <Typography variant="body2">
+                    Backup: {product.backupQuantity}
                   </Typography>
                 </CardContent>
                 <CardActions>
@@ -246,6 +262,15 @@ const Inventory = () => {
                 required
               />
               <TextField
+                label="Price"
+                type="number"
+                value={formData.price}
+                onChange={handleInputChange("price")}
+                fullWidth
+                required
+                inputProps={{ min: 0, step: "0.01" }}
+              />
+              <TextField
                 label="Quantity"
                 type="number"
                 value={formData.quantity}
@@ -262,12 +287,6 @@ const Inventory = () => {
                 fullWidth
                 required
                 inputProps={{ min: 0 }}
-              />
-              <TextField
-                label="Image URL"
-                value={formData.imageUrl}
-                onChange={handleInputChange("imageUrl")}
-                fullWidth
               />
             </Box>
           </DialogContent>

@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
@@ -9,96 +9,169 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  useTheme,
+  useMediaQuery,
+  Drawer,
 } from "@mui/material";
-import { AccountCircle } from "@mui/icons-material";
+import MenuIcon from "@mui/icons-material/Menu";
 import { useAuth } from "../context/AuthContext";
 
 // navigation component
 const Navigation = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
-  // handle menu open
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  // handle menu close
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  // handle navigation
-  const handleNavigate = (path) => {
-    navigate(path);
-    handleMenuClose();
-  };
-
-  // handle logout
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
+  const navItems = [
+    { label: "Sales", path: "/sales" },
+    ...(user?.role === "admin"
+      ? [{ label: "Inventory", path: "/inventory" }]
+      : []),
+    { label: "History", path: "/transactions" },
+    { label: "Logout", action: handleLogout, color: "error" },
+  ];
+
+  const isActive = (path) => {
+    if (!path) return false; // For logout button
+    return location.pathname === path;
+  };
+
+  const renderNavButtons = () => (
+    <>
+      {navItems.map((item) => (
+        <Button
+          key={item.label}
+          onClick={item.action || (() => navigate(item.path))}
+          sx={{
+            color: item.color === "error" ? "#ff4d4d" : "#fff",
+            backgroundColor: isActive(item.path) ? "#4477ff" : "transparent",
+            "&:hover": {
+              backgroundColor:
+                item.color === "error"
+                  ? "rgba(255, 77, 77, 0.1)"
+                  : isActive(item.path)
+                  ? "#3366cc"
+                  : "rgba(255, 255, 255, 0.1)",
+            },
+            borderRadius: "8px",
+            textTransform: "none",
+            fontWeight: 500,
+            minWidth: "100px",
+            padding: "8px 20px",
+          }}
+        >
+          {item.label}
+        </Button>
+      ))}
+    </>
+  );
+
   return (
-    <AppBar position="static">
-      <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Inventory Management
+    <AppBar
+      position="static"
+      elevation={0}
+      sx={{
+        backgroundColor: "#141414",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+      }}
+    >
+      <Toolbar sx={{ justifyContent: "space-between", height: "70px" }}>
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{
+            fontWeight: 600,
+            cursor: "pointer",
+            fontSize: { xs: "1.1rem", sm: "1.25rem" },
+          }}
+          onClick={() => navigate("/")}
+        >
+          Inventory Management System
         </Typography>
 
-        {/* navigation buttons */}
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <Button color="inherit" onClick={() => navigate("/")}>
-            Home
-          </Button>
-          {user?.role === "admin" && (
-            <Button color="inherit" onClick={() => navigate("/inventory")}>
-              Inventory
-            </Button>
-          )}
-          <Button color="inherit" onClick={() => navigate("/sales")}>
-            Sales
-          </Button>
-          <Button color="inherit" onClick={() => navigate("/transactions")}>
-            Transactions
-          </Button>
-        </Box>
-
-        {/* user menu */}
-        <IconButton
-          size="large"
-          aria-label="account of current user"
-          aria-controls="menu-appbar"
-          aria-haspopup="true"
-          onClick={handleMenuOpen}
-          color="inherit"
-        >
-          <AccountCircle />
-        </IconButton>
-        <Menu
-          id="menu-appbar"
-          anchorEl={anchorEl}
-          anchorOrigin={{
-            vertical: "top",
-            horizontal: "right",
-          }}
-          keepMounted
-          transformOrigin={{
-            vertical: "top",
-            horizontal: "right",
-          }}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-        >
-          <MenuItem disabled>
-            <Typography variant="body2">
-              {user?.name} ({user?.role})
-            </Typography>
-          </MenuItem>
-          <MenuItem onClick={handleLogout}>Logout</MenuItem>
-        </Menu>
+        {user && (
+          <>
+            {isMobile ? (
+              <>
+                <IconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  edge="end"
+                  onClick={handleDrawerToggle}
+                  sx={{ ml: 2 }}
+                >
+                  <MenuIcon />
+                </IconButton>
+                <Drawer
+                  anchor="right"
+                  open={mobileOpen}
+                  onClose={handleDrawerToggle}
+                  PaperProps={{
+                    sx: {
+                      backgroundColor: "#141414",
+                      width: 200,
+                      p: 2,
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+                  >
+                    {navItems.map((item) => (
+                      <Button
+                        key={item.label}
+                        fullWidth
+                        onClick={() => {
+                          if (item.action) {
+                            item.action();
+                          } else {
+                            navigate(item.path);
+                          }
+                          handleDrawerToggle();
+                        }}
+                        sx={{
+                          color: item.color === "error" ? "#ff4d4d" : "#fff",
+                          backgroundColor: isActive(item.path)
+                            ? "#4477ff"
+                            : "transparent",
+                          "&:hover": {
+                            backgroundColor:
+                              item.color === "error"
+                                ? "rgba(255, 77, 77, 0.1)"
+                                : isActive(item.path)
+                                ? "#3366cc"
+                                : "rgba(255, 255, 255, 0.1)",
+                          },
+                          justifyContent: "flex-start",
+                          textTransform: "none",
+                          fontWeight: 500,
+                          padding: "10px 16px",
+                          borderRadius: "8px",
+                        }}
+                      >
+                        {item.label}
+                      </Button>
+                    ))}
+                  </Box>
+                </Drawer>
+              </>
+            ) : (
+              <Box sx={{ display: "flex", gap: 1 }}>{renderNavButtons()}</Box>
+            )}
+          </>
+        )}
       </Toolbar>
     </AppBar>
   );

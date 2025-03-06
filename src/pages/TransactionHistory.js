@@ -15,9 +15,6 @@ import {
   TextField,
   Button,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { transactionApi } from "../services/api";
 
 // transaction history page component with filtering options
@@ -29,8 +26,8 @@ const TransactionHistory = () => {
   const [filters, setFilters] = useState({
     employee: "",
     product: "",
-    startDate: null,
-    endDate: null,
+    startDate: "",
+    endDate: "",
   });
 
   // fetch transactions function
@@ -60,139 +57,130 @@ const TransactionHistory = () => {
     });
   };
 
-  // handle date change
-  const handleDateChange = (field) => (date) => {
-    setFilters({
-      ...filters,
-      [field]: date,
-    });
-  };
-
   // handle reset filters
   const handleResetFilters = () => {
     setFilters({
       employee: "",
       product: "",
-      startDate: null,
-      endDate: null,
+      startDate: "",
+      endDate: "",
     });
   };
 
-  // render loading state
-  if (loading) {
-    return (
-      <Container maxWidth="md">
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
-  }
-
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Container maxWidth="md">
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Transaction History
-          </Typography>
+    <Container maxWidth="lg">
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Transaction History
+        </Typography>
 
-          {/* error alert */}
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          {/* filters */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Employee</InputLabel>
-                    <Select
-                      value={filters.employee}
-                      label="Employee"
-                      onChange={handleFilterChange("employee")}
-                    >
-                      <MenuItem value="">All</MenuItem>
-                      {/* Add employee options here */}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Product</InputLabel>
-                    <Select
-                      value={filters.product}
-                      label="Product"
-                      onChange={handleFilterChange("product")}
-                    >
-                      <MenuItem value="">All</MenuItem>
-                      {/* Add product options here */}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <DatePicker
-                    label="Start Date"
-                    value={filters.startDate}
-                    onChange={handleDateChange("startDate")}
-                    renderInput={(params) => (
-                      <TextField {...params} fullWidth />
-                    )}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <DatePicker
-                    label="End Date"
-                    value={filters.endDate}
-                    onChange={handleDateChange("endDate")}
-                    renderInput={(params) => (
-                      <TextField {...params} fullWidth />
-                    )}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    variant="outlined"
-                    onClick={handleResetFilters}
-                    sx={{ mr: 2 }}
+        {/* filters */}
+        <Card sx={{ mb: 4 }}>
+          <CardContent>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Employee</InputLabel>
+                  <Select
+                    value={filters.employee}
+                    onChange={handleFilterChange("employee")}
+                    label="Employee"
                   >
-                    Reset Filters
-                  </Button>
-                </Grid>
+                    <MenuItem value="">All</MenuItem>
+                    {/* Add employee options here */}
+                  </Select>
+                </FormControl>
               </Grid>
-            </CardContent>
-          </Card>
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Product</InputLabel>
+                  <Select
+                    value={filters.product}
+                    onChange={handleFilterChange("product")}
+                    label="Product"
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {/* Add product options here */}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="Start Date"
+                  value={filters.startDate}
+                  onChange={handleFilterChange("startDate")}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="End Date"
+                  value={filters.endDate}
+                  onChange={handleFilterChange("endDate")}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  variant="outlined"
+                  onClick={handleResetFilters}
+                  sx={{ mt: 2 }}
+                >
+                  Reset Filters
+                </Button>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-          {/* transactions list */}
-          <Grid container spacing={3}>
+        {/* error alert */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {/* loading state */}
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          /* transactions list */
+          <Grid container spacing={2}>
             {transactions.map((transaction) => (
               <Grid item xs={12} key={transaction._id}>
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      {transaction.product.name}
+                    <Typography variant="h6">
+                      {transaction.product?.name}
                     </Typography>
-                    <Typography color="textSecondary" gutterBottom>
-                      Sold by: {transaction.employee.name}
-                    </Typography>
-                    <Typography variant="body2">
+                    <Typography color="textSecondary">
                       Quantity: {transaction.quantity}
                     </Typography>
-                    <Typography variant="body2">
-                      Date: {new Date(transaction.timestamp).toLocaleString()}
+                    <Typography color="textSecondary">
+                      Employee: {transaction.employee?.name}
                     </Typography>
+                    <Typography color="textSecondary">
+                      Date: {new Date(transaction.date).toLocaleDateString()}
+                    </Typography>
+                    {transaction.notes && (
+                      <Typography color="textSecondary">
+                        Notes: {transaction.notes}
+                      </Typography>
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
             ))}
           </Grid>
-        </Box>
-      </Container>
-    </LocalizationProvider>
+        )}
+      </Box>
+    </Container>
   );
 };
 
