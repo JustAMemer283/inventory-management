@@ -43,10 +43,17 @@ router.post("/", auth, admin, async (req, res) => {
 
     // Create transaction record
     const transaction = new Transaction({
-      type: "ADD",
+      type: "NEW",
       product: product._id,
       employee: req.user._id,
       quantity: Number(quantity),
+      newData: {
+        name,
+        brand,
+        quantity: Number(quantity),
+        backupQuantity: Number(backupQuantity),
+        price: Number(price),
+      },
       notes: `Initial stock: ${quantity} units, Backup: ${backupQuantity} units`,
     });
 
@@ -61,7 +68,7 @@ router.post("/", auth, admin, async (req, res) => {
 // update stock
 router.put("/:id/stock", auth, admin, async (req, res) => {
   try {
-    const { quantity, backupQuantity } = req.body;
+    const { quantity, backupQuantity, isSwap } = req.body;
 
     // Validate quantity fields
     if (quantity == null && backupQuantity == null) {
@@ -76,15 +83,42 @@ router.put("/:id/stock", auth, admin, async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Calculate new quantities
-    const newQuantity =
-      quantity != null
-        ? Number(currentProduct.quantity) + Number(quantity)
-        : currentProduct.quantity;
-    const newBackupQuantity =
-      backupQuantity != null
-        ? Number(currentProduct.backupQuantity) + Number(backupQuantity)
-        : currentProduct.backupQuantity;
+    let newQuantity, newBackupQuantity;
+
+    if (isSwap) {
+      // Handle swap operation
+      if (quantity) {
+        // Moving from backup to stock
+        if (Number(quantity) > currentProduct.backupQuantity) {
+          return res.status(400).json({
+            message: "Cannot swap more than available backup quantity",
+          });
+        }
+        newQuantity = Number(currentProduct.quantity) + Number(quantity);
+        newBackupQuantity =
+          Number(currentProduct.backupQuantity) - Number(quantity);
+      } else if (backupQuantity) {
+        // Moving from stock to backup
+        if (Number(backupQuantity) > currentProduct.quantity) {
+          return res.status(400).json({
+            message: "Cannot swap more than available stock quantity",
+          });
+        }
+        newQuantity = Number(currentProduct.quantity) - Number(backupQuantity);
+        newBackupQuantity =
+          Number(currentProduct.backupQuantity) + Number(backupQuantity);
+      }
+    } else {
+      // Normal add operation
+      newQuantity =
+        quantity != null
+          ? Number(currentProduct.quantity) + Number(quantity)
+          : currentProduct.quantity;
+      newBackupQuantity =
+        backupQuantity != null
+          ? Number(currentProduct.backupQuantity) + Number(backupQuantity)
+          : currentProduct.backupQuantity;
+    }
 
     // Update the product
     const product = await Product.findByIdAndUpdate(
@@ -96,9 +130,22 @@ router.put("/:id/stock", auth, admin, async (req, res) => {
       { new: true }
     );
 
-    // Create transaction record
+    // Create transaction record with detailed notes
+    let notes = "";
+    if (isSwap) {
+      notes = `Transferred ${quantity} units from backup to stock. (Stock: ${currentProduct.quantity} → ${newQuantity}, Backup: ${currentProduct.backupQuantity} → ${newBackupQuantity})`;
+    } else {
+      const stockChange = quantity
+        ? `Stock: ${currentProduct.quantity} → ${newQuantity}`
+        : "";
+      const backupChange = backupQuantity
+        ? `Backup: ${currentProduct.backupQuantity} → ${newBackupQuantity}`
+        : "";
+      notes = [stockChange, backupChange].filter(Boolean).join(", ");
+    }
+
     const transaction = new Transaction({
-      type: "ADD",
+      type: isSwap ? "TRANSFER" : "ADD",
       product: product._id,
       employee: req.user._id,
       quantity: quantity || backupQuantity,
@@ -110,7 +157,7 @@ router.put("/:id/stock", auth, admin, async (req, res) => {
         quantity: newQuantity,
         backupQuantity: newBackupQuantity,
       },
-      notes: "Stock update",
+      notes: notes,
     });
 
     await transaction.save();
@@ -195,7 +242,7 @@ router.delete("/:id", auth, admin, async (req, res) => {
       type: "DELETE",
       product: product._id,
       employee: req.user._id,
-      notes: `Deleted product: ${product.name}`,
+      notes: `Deleted product: ${product.brand} - ${product.name}`,
     });
 
     await transaction.save();
@@ -218,12 +265,31 @@ router.post("/sale", auth, async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    if (product.quantity < quantity) {
-      return res.status(400).json({ message: "Not enough stock" });
+    // Check total available stock first
+    const totalAvailable = product.quantity + product.backupQuantity;
+    if (quantity > totalAvailable) {
+      return res
+        .status(400)
+        .json({ message: "Not enough total stock available" });
     }
 
-    const previousQuantity = product.quantity;
-    product.quantity -= quantity;
+    let fromBackup = 0;
+    let fromStock = 0;
+
+    // Calculate how much to take from stock and backup
+    if (quantity <= product.quantity) {
+      // If we have enough in regular stock, take it all from there
+      fromStock = quantity;
+    } else {
+      // Take what we can from stock, rest from backup
+      fromStock = product.quantity;
+      fromBackup = quantity - product.quantity;
+    }
+
+    // Update quantities
+    product.quantity -= fromStock;
+    product.backupQuantity -= fromBackup;
+
     await product.save();
 
     // Create transaction record
@@ -234,7 +300,10 @@ router.post("/sale", auth, async (req, res) => {
       quantity: quantity,
       remainingQuantity: product.quantity,
       backupQuantity: product.backupQuantity,
-      notes: `Sold ${quantity} units`,
+      notes:
+        fromBackup > 0
+          ? `Sold ${quantity} units (${fromStock} from stock, ${fromBackup} from backup)`
+          : `Sold ${quantity} units from stock`,
     });
 
     await transaction.save();

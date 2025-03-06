@@ -15,8 +15,14 @@ import {
   TextField,
   CircularProgress,
   Alert,
+  Autocomplete,
+  Divider,
+  Snackbar,
 } from "@mui/material";
-import { Add as AddIcon } from "@mui/icons-material";
+import {
+  Add as AddIcon,
+  LocalShipping as ShippingIcon,
+} from "@mui/icons-material";
 import { productApi } from "../services/api";
 
 // sales page component for recording sales
@@ -28,6 +34,8 @@ const Sales = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   // fetch products on component mount
   useEffect(() => {
@@ -48,18 +56,17 @@ const Sales = () => {
     }
   };
 
-  // handle dialog open
-  const handleOpenDialog = (product) => {
+  // handle product selection
+  const handleProductSelect = (product) => {
     setSelectedProduct(product);
     setQuantity("");
-    setOpenDialog(true);
+    setError(null);
   };
 
-  // handle dialog close
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setSelectedProduct(null);
-    setQuantity("");
+  // calculate total available quantity
+  const getTotalQuantity = (product) => {
+    if (!product) return 0;
+    return product.quantity + product.backupQuantity;
   };
 
   // handle sale submit
@@ -70,19 +77,33 @@ const Sales = () => {
         return;
       }
 
+      const totalAvailable = getTotalQuantity(selectedProduct);
+      if (quantity > totalAvailable) {
+        setError("Requested quantity exceeds total available stock");
+        return;
+      }
+
       const saleData = {
         productId: selectedProduct._id,
         quantity: parseInt(quantity),
-        timestamp: new Date(),
       };
 
       await productApi.recordSale(saleData);
       await fetchProducts();
-      handleCloseDialog();
+      setSelectedProduct(null);
+      setQuantity("");
       setError(null);
+      setSuccessMessage(
+        `Successfully sold ${quantity} units of ${selectedProduct.brand} - ${selectedProduct.name}`
+      );
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     }
+  };
+
+  // handle snackbar close
+  const handleSnackbarClose = () => {
+    setSuccessMessage("");
   };
 
   // render loading state
@@ -100,7 +121,7 @@ const Sales = () => {
     <Container maxWidth="md">
       <Box sx={{ mt: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Record Sales
+          Record Sale
         </Typography>
 
         {/* error alert */}
@@ -110,73 +131,108 @@ const Sales = () => {
           </Alert>
         )}
 
-        {/* products grid */}
-        <Grid container spacing={3}>
-          {products.map((product) => (
-            <Grid item xs={12} sm={6} md={4} key={product._id}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    {product.name}
-                  </Typography>
-                  <Typography color="textSecondary" gutterBottom>
-                    Brand: {product.brand}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    Price: ${product.price}
-                  </Typography>
-                  <Typography variant="body2">
-                    Available: {product.quantity}
-                  </Typography>
-                </CardContent>
-                <CardActions>
-                  <Button
-                    startIcon={<AddIcon />}
-                    onClick={() => handleOpenDialog(product)}
-                    disabled={product.quantity <= 0}
-                  >
-                    Record Sale
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-
-        {/* record sale dialog */}
-        <Dialog
-          open={openDialog}
-          onClose={handleCloseDialog}
-          maxWidth="sm"
-          fullWidth
+        {/* Success Snackbar */}
+        <Snackbar
+          open={!!successMessage}
+          autoHideDuration={3000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
         >
-          <DialogTitle>Record Sale</DialogTitle>
-          <DialogContent>
-            <Box
-              sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
-            >
-              <Typography variant="h6">{selectedProduct?.name}</Typography>
-              <Typography color="textSecondary">
-                Available: {selectedProduct?.quantity}
-              </Typography>
-              <TextField
-                label="Quantity"
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                fullWidth
-                required
-                inputProps={{ min: 1, max: selectedProduct?.quantity }}
+          <Alert
+            onClose={handleSnackbarClose}
+            severity="success"
+            sx={{ width: "100%" }}
+          >
+            {successMessage}
+          </Alert>
+        </Snackbar>
+
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Autocomplete
+                options={products}
+                getOptionLabel={(option) => `${option.name} - ${option.brand}`}
+                value={selectedProduct}
+                onChange={(event, newValue) => handleProductSelect(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search Product"
+                    variant="outlined"
+                    fullWidth
+                  />
+                )}
               />
+
+              {selectedProduct && (
+                <>
+                  <Divider sx={{ my: 1 }} />
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+                  >
+                    <Typography variant="h6" color="primary">
+                      {selectedProduct.name} - {selectedProduct.brand}
+                    </Typography>
+                    <Typography variant="body1">
+                      Price: ${selectedProduct.price.toFixed(2)}
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 4, mt: 1 }}>
+                      <Typography variant="body1" color="success.main">
+                        In Stock: {selectedProduct.quantity}
+                      </Typography>
+                      <Typography variant="body1" color="info.main">
+                        Backup: {selectedProduct.backupQuantity}
+                      </Typography>
+                      <Typography variant="body1" color="primary">
+                        Total Available: {getTotalQuantity(selectedProduct)}
+                      </Typography>
+                    </Box>
+                    <TextField
+                      label="Quantity to Sell"
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      fullWidth
+                      required
+                      inputProps={{
+                        min: 1,
+                        max: getTotalQuantity(selectedProduct),
+                      }}
+                      helperText={
+                        quantity > selectedProduct.quantity
+                          ? `Will use ${
+                              quantity - selectedProduct.quantity
+                            } units from backup stock`
+                          : ""
+                      }
+                      sx={{ mt: 2 }}
+                    />
+                    {quantity && (
+                      <Typography variant="body2" color="text.secondary">
+                        Total Price: $
+                        {(quantity * selectedProduct.price).toFixed(2)}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}
+                  >
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleSubmit}
+                      disabled={!quantity || quantity <= 0}
+                      startIcon={<ShippingIcon />}
+                    >
+                      Record Sale
+                    </Button>
+                  </Box>
+                </>
+              )}
             </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button onClick={handleSubmit} variant="contained">
-              Record Sale
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </CardContent>
+        </Card>
       </Box>
     </Container>
   );

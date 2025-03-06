@@ -47,12 +47,16 @@ const TransactionHistory = () => {
     switch (type) {
       case "SALE":
         return "error";
+      case "NEW":
+        return "secondary";
       case "ADD":
         return "success";
       case "EDIT":
         return "warning";
       case "DELETE":
         return "error";
+      case "TRANSFER":
+        return "info";
       default:
         return "default";
     }
@@ -61,7 +65,7 @@ const TransactionHistory = () => {
   const renderTransactionDetails = (transaction) => {
     // Handle case where product is null (deleted product)
     const productName = transaction.product
-      ? transaction.product.name
+      ? `${transaction.product.brand} - ${transaction.product.name}`
       : "Unknown Product";
 
     switch (transaction.type) {
@@ -77,11 +81,63 @@ const TransactionHistory = () => {
             </Typography>
           </>
         );
+      case "NEW":
+        return (
+          <>
+            <Typography variant="body2">
+              Added new product: {productName}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Initial values set:
+            </Typography>
+            {transaction.newData && (
+              <Box sx={{ pl: 2 }}>
+                <Typography variant="body2" color="textSecondary">
+                  Stock: {transaction.newData.quantity} units
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Backup: {transaction.newData.backupQuantity} units
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Price: ${transaction.newData.price}
+                </Typography>
+              </Box>
+            )}
+          </>
+        );
       case "ADD":
         return (
-          <Typography variant="body2">
-            Added {transaction.quantity} units of {productName}
-          </Typography>
+          <>
+            <Typography variant="body2">
+              Stock update for {productName}
+            </Typography>
+            {transaction.previousData && transaction.newData && (
+              <Typography variant="body2" color="textSecondary">
+                {transaction.previousData.quantity !==
+                  transaction.newData.quantity &&
+                  `Stock: ${transaction.previousData.quantity} → ${transaction.newData.quantity}`}
+                {transaction.previousData.quantity !==
+                  transaction.newData.quantity &&
+                  transaction.previousData.backupQuantity !==
+                    transaction.newData.backupQuantity &&
+                  " | "}
+                {transaction.previousData.backupQuantity !==
+                  transaction.newData.backupQuantity &&
+                  `Backup: ${transaction.previousData.backupQuantity} → ${transaction.newData.backupQuantity}`}
+              </Typography>
+            )}
+          </>
+        );
+      case "TRANSFER":
+        return (
+          <>
+            <Typography variant="body2">
+              Stock transfer for {productName}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              {transaction.notes}
+            </Typography>
+          </>
         );
       case "EDIT":
         return (

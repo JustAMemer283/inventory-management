@@ -17,12 +17,16 @@ import {
   CardContent,
   CardActions,
   Autocomplete,
+  Switch,
+  FormControlLabel,
+  Snackbar,
 } from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
   Inventory as InventoryIcon,
+  SwapHoriz as SwapIcon,
 } from "@mui/icons-material";
 import { productApi } from "../services/api";
 
@@ -34,6 +38,7 @@ const Inventory = () => {
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     brand: "",
@@ -46,6 +51,17 @@ const Inventory = () => {
   const [updateQuantities, setUpdateQuantities] = useState({
     quantity: "",
     backupQuantity: "",
+  });
+  const [isSwapMode, setIsSwapMode] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Filter products based on search query
+  const filteredProducts = products.filter((product) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(searchLower) ||
+      product.brand.toLowerCase().includes(searchLower)
+    );
   });
 
   // fetch products on component mount
@@ -120,29 +136,31 @@ const Inventory = () => {
     });
   };
 
+  // handle snackbar close
+  const handleSnackbarClose = () => {
+    setSuccessMessage("");
+  };
+
   // handle form submit
   const handleSubmit = async () => {
     try {
-      // Convert all numeric fields to numbers before submission
       const submissionData = {
         ...formData,
         quantity: Number(formData.quantity),
         backupQuantity: Number(formData.backupQuantity),
         price: Number(formData.price),
       };
-      console.log("Submitting data:", submissionData);
 
       if (editingProduct) {
-        console.log("Updating product:", editingProduct._id);
-        const updated = await productApi.update(
-          editingProduct._id,
-          submissionData
+        await productApi.update(editingProduct._id, submissionData);
+        setSuccessMessage(
+          `Successfully updated ${submissionData.brand} - ${submissionData.name}`
         );
-        console.log("Update response:", updated);
       } else {
-        console.log("Adding new product");
-        const added = await productApi.create(submissionData);
-        console.log("Add response:", added);
+        await productApi.create(submissionData);
+        setSuccessMessage(
+          `Successfully added ${submissionData.brand} - ${submissionData.name}`
+        );
       }
       await fetchProducts();
       handleCloseDialog();
@@ -154,10 +172,11 @@ const Inventory = () => {
   };
 
   // handle delete product
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, productName) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
       try {
         await productApi.delete(id);
+        setSuccessMessage(`Successfully deleted ${productName}`);
         await fetchProducts();
         setError(null);
       } catch (err) {
@@ -177,6 +196,8 @@ const Inventory = () => {
       quantity: "",
       backupQuantity: "",
     });
+    setIsSwapMode(false);
+    setError(null);
   };
 
   const handleProductSelect = (product) => {
@@ -191,12 +212,80 @@ const Inventory = () => {
     try {
       if (!selectedProduct) return;
 
-      const stockData = {
-        quantity: updateQuantities.quantity || null,
-        backupQuantity: updateQuantities.backupQuantity || null,
-      };
+      if (isSwapMode) {
+        // Validate swap quantities
+        const swapQuantity = Number(updateQuantities.quantity) || 0;
 
-      await productApi.updateStock(selectedProduct._id, stockData);
+        if (swapQuantity <= 0) {
+          setError("Please enter a valid quantity to swap");
+          return;
+        }
+
+        if (
+          updateQuantities.quantity &&
+          Number(updateQuantities.quantity) > selectedProduct.backupQuantity
+        ) {
+          setError("Cannot swap more than available backup quantity");
+          return;
+        }
+
+        if (
+          updateQuantities.backupQuantity &&
+          Number(updateQuantities.backupQuantity) > selectedProduct.quantity
+        ) {
+          setError("Cannot swap more than available stock quantity");
+          return;
+        }
+
+        // For swap mode, we subtract from one and add to the other
+        const stockData = {
+          quantity: updateQuantities.quantity
+            ? Number(updateQuantities.quantity)
+            : null,
+          backupQuantity: updateQuantities.quantity
+            ? -Number(updateQuantities.quantity)
+            : null,
+          isSwap: true,
+        };
+
+        await productApi.updateStock(selectedProduct._id, stockData);
+        const newStockQty =
+          selectedProduct.quantity + Number(updateQuantities.quantity);
+        const newBackupQty =
+          selectedProduct.backupQuantity - Number(updateQuantities.quantity);
+        setSuccessMessage(
+          `${selectedProduct.brand} - ${selectedProduct.name}: Transferred ${updateQuantities.quantity} units from backup to stock. (Stock: ${selectedProduct.quantity} → ${newStockQty}, Backup: ${selectedProduct.backupQuantity} → ${newBackupQty})`
+        );
+      } else {
+        // Normal add mode
+        const stockData = {
+          quantity: updateQuantities.quantity
+            ? Number(updateQuantities.quantity)
+            : null,
+          backupQuantity: updateQuantities.backupQuantity
+            ? Number(updateQuantities.backupQuantity)
+            : null,
+          isSwap: false,
+        };
+
+        await productApi.updateStock(selectedProduct._id, stockData);
+        let message = `${selectedProduct.brand} - ${selectedProduct.name}:`;
+        if (updateQuantities.quantity) {
+          const newStockQty =
+            selectedProduct.quantity + Number(updateQuantities.quantity);
+          message += ` Stock: ${selectedProduct.quantity} → ${newStockQty}`;
+        }
+        if (updateQuantities.backupQuantity) {
+          const newBackupQty =
+            selectedProduct.backupQuantity +
+            Number(updateQuantities.backupQuantity);
+          message += `${updateQuantities.quantity ? "," : ""} Backup: ${
+            selectedProduct.backupQuantity
+          } → ${newBackupQty}`;
+        }
+        setSuccessMessage(message);
+      }
+
       await fetchProducts();
       handleUpdateStockClose();
       setError(null);
@@ -218,13 +307,13 @@ const Inventory = () => {
   }
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="lg">
       <Box sx={{ mt: 4 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
           <Typography variant="h4" component="h1">
-            Inventory Management
+            Inventory
           </Typography>
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <Box sx={{ display: "flex", gap: 2 }}>
             <Button
               variant="contained"
               startIcon={<InventoryIcon />}
@@ -234,61 +323,93 @@ const Inventory = () => {
             </Button>
             <Button
               variant="contained"
+              color="primary"
               startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
+              onClick={() => {
+                setEditingProduct(null);
+                setFormData({
+                  name: "",
+                  brand: "",
+                  quantity: "",
+                  backupQuantity: "",
+                  price: "",
+                });
+                setOpenDialog(true);
+              }}
             >
               Add Product
             </Button>
           </Box>
         </Box>
 
-        {/* error alert */}
+        {/* Search bar */}
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search by product name or brand..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ mb: 3 }}
+          InputProps={{
+            startAdornment: (
+              <Box sx={{ color: "text.secondary", mr: 1 }}>🔍</Box>
+            ),
+          }}
+        />
+
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
 
-        {/* products grid */}
-        <Grid container spacing={3}>
-          {products.map((product) => (
-            <Grid item xs={12} sm={6} md={4} key={product._id}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    {product.name}
-                  </Typography>
-                  <Typography color="textSecondary" gutterBottom>
-                    Brand: {product.brand}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    Price: ${product.price ? product.price.toFixed(2) : "0.00"}
-                  </Typography>
-                  <Typography variant="body2">
-                    Available: {product.quantity}
-                  </Typography>
-                  <Typography variant="body2">
-                    Backup: {product.backupQuantity}
-                  </Typography>
-                </CardContent>
-                <CardActions>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleOpenDialog(product)}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDelete(product._id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Grid container spacing={3}>
+            {filteredProducts.map((product) => (
+              <Grid item xs={12} sm={6} md={4} key={product._id}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" color="primary" gutterBottom>
+                      {product.brand} - {product.name}
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+                      <Typography variant="body1" color="success.main">
+                        Stock: {product.quantity}
+                      </Typography>
+                      <Typography variant="body1" color="info.main">
+                        Backup: {product.backupQuantity}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1">
+                      Price: ${product.price.toFixed(2)}
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    <Button
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={() => handleOpenDialog(product)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="small"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => handleDelete(product._id, product.name)}
+                    >
+                      Delete
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
 
         {/* Update Stock Dialog */}
         <Dialog
@@ -297,7 +418,7 @@ const Inventory = () => {
           maxWidth="sm"
           fullWidth
         >
-          <DialogTitle>Update Stock</DialogTitle>
+          <DialogTitle sx={{ pb: 1 }}>Update Stock</DialogTitle>
           <DialogContent>
             <Box
               sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
@@ -318,38 +439,91 @@ const Inventory = () => {
               />
               {selectedProduct && (
                 <>
-                  <Typography variant="body2" color="textSecondary">
-                    Current Stock: {selectedProduct.quantity}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Typography variant="body1" color="textSecondary">
+                      Current Stock: {selectedProduct.quantity}
+                    </Typography>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={isSwapMode}
+                          onChange={(e) => {
+                            setIsSwapMode(e.target.checked);
+                            setUpdateQuantities({
+                              quantity: "",
+                              backupQuantity: "",
+                            });
+                            setError(null);
+                          }}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <SwapIcon sx={{ mr: 1 }} />
+                          Swap Mode
+                        </Box>
+                      }
+                    />
+                  </Box>
+                  <Typography variant="body1" color="textSecondary">
                     Current Backup: {selectedProduct.backupQuantity}
                   </Typography>
-                  <TextField
-                    label="Add to Stock"
-                    type="number"
-                    value={updateQuantities.quantity}
-                    onChange={(e) =>
-                      setUpdateQuantities({
-                        ...updateQuantities,
-                        quantity: e.target.value,
-                      })
-                    }
-                    fullWidth
-                    inputProps={{ min: 0 }}
-                  />
-                  <TextField
-                    label="Add to Backup"
-                    type="number"
-                    value={updateQuantities.backupQuantity}
-                    onChange={(e) =>
-                      setUpdateQuantities({
-                        ...updateQuantities,
-                        backupQuantity: e.target.value,
-                      })
-                    }
-                    fullWidth
-                    inputProps={{ min: 0 }}
-                  />
+                  {isSwapMode ? (
+                    <TextField
+                      label="Quantity to move from Backup to Stock"
+                      type="number"
+                      value={updateQuantities.quantity}
+                      onChange={(e) =>
+                        setUpdateQuantities({
+                          ...updateQuantities,
+                          quantity: e.target.value,
+                          backupQuantity: "", // Clear backup quantity in swap mode
+                        })
+                      }
+                      fullWidth
+                      inputProps={{
+                        min: 0,
+                        max: selectedProduct.backupQuantity,
+                      }}
+                      helperText={`Maximum available: ${selectedProduct.backupQuantity}`}
+                    />
+                  ) : (
+                    <>
+                      <TextField
+                        label="Add to Stock"
+                        type="number"
+                        value={updateQuantities.quantity}
+                        onChange={(e) =>
+                          setUpdateQuantities({
+                            ...updateQuantities,
+                            quantity: e.target.value,
+                          })
+                        }
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                      />
+                      <TextField
+                        label="Add to Backup"
+                        type="number"
+                        value={updateQuantities.backupQuantity}
+                        onChange={(e) =>
+                          setUpdateQuantities({
+                            ...updateQuantities,
+                            backupQuantity: e.target.value,
+                          })
+                        }
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </Box>
@@ -364,7 +538,7 @@ const Inventory = () => {
                 (!updateQuantities.quantity && !updateQuantities.backupQuantity)
               }
             >
-              Update
+              {isSwapMode ? "Swap Stock" : "Update"}
             </Button>
           </DialogActions>
         </Dialog>
@@ -433,6 +607,22 @@ const Inventory = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Success Snackbar */}
+        <Snackbar
+          open={!!successMessage}
+          autoHideDuration={3000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={handleSnackbarClose}
+            severity="success"
+            sx={{ width: "100%" }}
+          >
+            {successMessage}
+          </Alert>
+        </Snackbar>
       </Box>
     </Container>
   );
