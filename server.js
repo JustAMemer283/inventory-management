@@ -1,8 +1,9 @@
 // import required dependencies
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const connectDB = require("./src/utils/db");
+const productRoutes = require("./src/routes/productRoutes");
 
 // load environment variables
 dotenv.config();
@@ -14,11 +15,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// connect to mongodb
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("connected to mongodb"))
-  .catch((err) => console.error("mongodb connection error:", err));
+// connect to mongodb atlas
+connectDB();
+
+// routes
+app.use("/api/products", productRoutes);
 
 // basic route
 app.get("/", (req, res) => {
