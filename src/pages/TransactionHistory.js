@@ -13,9 +13,21 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  Button,
+  IconButton,
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
 } from "@mui/material";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, startOfToday } from "date-fns";
 import { transactionApi } from "../services/api";
+import {
+  ContentCopy as ContentCopyIcon,
+  Close as CloseIcon,
+  CalendarToday as CalendarIcon,
+} from "@mui/icons-material";
 
 // transaction history page component with filtering options
 const TransactionHistory = () => {
@@ -23,6 +35,11 @@ const TransactionHistory = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [openReport, setOpenReport] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(
+    format(new Date(), "yyyy-MM-dd")
+  );
 
   // fetch transactions function
   const fetchTransactions = async () => {
@@ -38,7 +55,7 @@ const TransactionHistory = () => {
     }
   };
 
-  // fetch transactions on component mount and filter changes
+  // fetch data on component mount
   useEffect(() => {
     fetchTransactions();
   }, []);
@@ -208,6 +225,56 @@ const TransactionHistory = () => {
     return groups;
   };
 
+  const generateSalesReport = () => {
+    // Create date at start of day in local timezone
+    const selectedDateTime = new Date(selectedDate + "T00:00:00");
+
+    // Filter sales transactions for selected date
+    const filteredSales = transactions.filter((transaction) => {
+      const transactionDate = new Date(transaction.date);
+      return (
+        transaction.type === "SALE" &&
+        transactionDate.getDate() === selectedDateTime.getDate() &&
+        transactionDate.getMonth() === selectedDateTime.getMonth() &&
+        transactionDate.getFullYear() === selectedDateTime.getFullYear()
+      );
+    });
+
+    // Sort by time
+    filteredSales.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Generate report with just the date and sales
+    const reportDate = selectedDateTime;
+    let report = `Sale (${format(reportDate, "do MMM")}, ${format(
+      reportDate,
+      "EEEE"
+    )}):\n`;
+
+    if (filteredSales.length === 0) {
+      report += "No sales recorded for this date.\n";
+    } else {
+      filteredSales.forEach((sale) => {
+        const time = format(new Date(sale.date), "hh:mm a");
+        const productInfo = sale.product
+          ? `${sale.product.brand} - ${sale.product.name}`
+          : "Unknown Product";
+        report += `${time} - ${productInfo} - ${sale.quantity}\n`;
+      });
+    }
+
+    return report;
+  };
+
+  const handleCopyReport = async () => {
+    try {
+      const report = generateSalesReport();
+      await navigator.clipboard.writeText(report);
+      setSuccessMessage("Report copied to clipboard!");
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -223,9 +290,19 @@ const TransactionHistory = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ mt: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Transaction History
-        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Transaction History
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<ContentCopyIcon />}
+            onClick={() => setOpenReport(true)}
+          >
+            Generate Today's Report
+          </Button>
+        </Box>
 
         {/* error alert */}
         {error && (
@@ -233,6 +310,22 @@ const TransactionHistory = () => {
             {error}
           </Alert>
         )}
+
+        {/* Success Snackbar */}
+        <Snackbar
+          open={!!successMessage}
+          autoHideDuration={3000}
+          onClose={() => setSuccessMessage("")}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSuccessMessage("")}
+            severity="success"
+            sx={{ width: "100%" }}
+          >
+            {successMessage}
+          </Alert>
+        </Snackbar>
 
         <TableContainer component={Paper}>
           <Table>
@@ -286,6 +379,56 @@ const TransactionHistory = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Sales Report Dialog */}
+        <Dialog
+          open={openReport}
+          onClose={() => setOpenReport(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              Sales Report
+              <Box>
+                <IconButton
+                  onClick={handleCopyReport}
+                  color="primary"
+                  title="Copy to clipboard"
+                >
+                  <ContentCopyIcon />
+                </IconButton>
+                <IconButton
+                  onClick={() => setOpenReport(false)}
+                  color="inherit"
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ mt: 2, mb: 3 }}>
+              <TextField
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                label="Select Date"
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+            </Box>
+            <Box sx={{ whiteSpace: "pre-wrap", fontFamily: "monospace" }}>
+              {generateSalesReport()}
+            </Box>
+          </DialogContent>
+        </Dialog>
       </Box>
     </Container>
   );
