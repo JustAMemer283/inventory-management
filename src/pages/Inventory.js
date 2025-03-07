@@ -20,6 +20,7 @@ import {
   Switch,
   FormControlLabel,
   Snackbar,
+  Chip,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -27,6 +28,10 @@ import {
   Add as AddIcon,
   Inventory as InventoryIcon,
   SwapHoriz as SwapIcon,
+  LocalShipping as ShippingIcon,
+  Assessment as AssessmentIcon,
+  ContentCopy as ContentCopyIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { productApi } from "../services/api";
 
@@ -54,6 +59,9 @@ const Inventory = () => {
   });
   const [isSwapMode, setIsSwapMode] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [openQuickLook, setOpenQuickLook] = useState(false);
+  const [selectedBrands, setSelectedBrands] = useState([]);
+  const [availableBrands, setAvailableBrands] = useState([]);
 
   // Filter products based on search query
   const filteredProducts = products.filter((product) => {
@@ -295,6 +303,50 @@ const Inventory = () => {
     }
   };
 
+  // Get unique brands from products
+  useEffect(() => {
+    if (products.length > 0) {
+      const brands = [...new Set(products.map((product) => product.brand))];
+      setAvailableBrands(brands);
+    }
+  }, [products]);
+
+  const handleBrandToggle = (brand) => {
+    setSelectedBrands((prev) =>
+      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
+    );
+  };
+
+  const generateReport = () => {
+    let report = "Inventory:\n\n";
+
+    selectedBrands.forEach((brand, index) => {
+      const brandProducts = products.filter((p) => p.brand === brand);
+      if (brandProducts.length > 0) {
+        report += `${brand}:\n`;
+        brandProducts.forEach((product) => {
+          const totalQuantity = product.quantity + product.backupQuantity;
+          report += `${product.name}: ${totalQuantity}\n`;
+        });
+        if (index < selectedBrands.length - 1) {
+          report += "\n-------------------\n\n";
+        }
+      }
+    });
+
+    return report;
+  };
+
+  const handleCopyToClipboard = async () => {
+    const report = generateReport();
+    try {
+      await navigator.clipboard.writeText(report);
+      setSuccessMessage("Report copied to clipboard!");
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   // render loading state
   if (loading) {
     return (
@@ -316,8 +368,17 @@ const Inventory = () => {
           <Box sx={{ display: "flex", gap: 2 }}>
             <Button
               variant="contained"
-              startIcon={<InventoryIcon />}
-              onClick={handleUpdateStockOpen}
+              color="primary"
+              startIcon={<AssessmentIcon />}
+              onClick={() => setOpenQuickLook(true)}
+            >
+              Quick Look
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<ShippingIcon />}
+              onClick={() => setOpenUpdateStock(true)}
             >
               Update Stock
             </Button>
@@ -606,6 +667,68 @@ const Inventory = () => {
               {editingProduct ? "Update" : "Add"}
             </Button>
           </DialogActions>
+        </Dialog>
+
+        {/* Quick Look Dialog */}
+        <Dialog
+          open={openQuickLook}
+          onClose={() => setOpenQuickLook(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              Quick Look Report
+              <Box>
+                <IconButton
+                  onClick={handleCopyToClipboard}
+                  color="primary"
+                  title="Copy to clipboard"
+                >
+                  <ContentCopyIcon />
+                </IconButton>
+                <IconButton
+                  onClick={() => setOpenQuickLook(false)}
+                  color="inherit"
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Select Brands:
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                {availableBrands.map((brand) => (
+                  <Chip
+                    key={brand}
+                    label={brand}
+                    onClick={() => handleBrandToggle(brand)}
+                    color={
+                      selectedBrands.includes(brand) ? "primary" : "default"
+                    }
+                    sx={{ m: 0.5 }}
+                  />
+                ))}
+              </Box>
+            </Box>
+            {selectedBrands.length > 0 && (
+              <Box
+                sx={{ mt: 3, whiteSpace: "pre-wrap", fontFamily: "monospace" }}
+              >
+                {generateReport()}
+              </Box>
+            )}
+          </DialogContent>
         </Dialog>
 
         {/* Success Snackbar */}
