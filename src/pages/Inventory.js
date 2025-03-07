@@ -329,7 +329,7 @@ const Inventory = () => {
           report += `${product.name}: ${totalQuantity}\n`;
         });
         if (index < selectedBrands.length - 1) {
-          report += "\n-------------------\n\n";
+          report += "\n";
         }
       }
     });
