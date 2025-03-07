@@ -6,7 +6,7 @@ const transactionSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ["SALE", "EDIT", "DELETE", "ADD", "TRANSFER"],
+      enum: ["SALE", "EDIT", "DELETE", "ADD", "TRANSFER", "NEW"],
     },
     product: {
       type: mongoose.Schema.Types.ObjectId,
