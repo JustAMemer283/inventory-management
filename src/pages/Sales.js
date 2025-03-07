@@ -152,7 +152,7 @@ const Sales = () => {
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Autocomplete
                 options={products}
-                getOptionLabel={(option) => `${option.name} - ${option.brand}`}
+                getOptionLabel={(option) => `${option.brand} - ${option.name}`}
                 value={selectedProduct}
                 onChange={(event, newValue) => handleProductSelect(newValue)}
                 renderInput={(params) => (
