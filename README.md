@@ -1,25 +1,27 @@
 # Inventory Management System
 
-A modern, feature-rich inventory management system built with React and Material-UI. This system helps businesses track inventory, manage sales, and monitor transactions in real-time.
+A modern, feature-rich inventory management system built with React and Material-UI. Perfect for small to medium businesses to track inventory, manage sales, and monitor transactions in real-time.
 
-## 🌟 Features
+## ✨ Features
 
-### Inventory Management
+### 📦 Inventory Management
 
 - Add, edit, and delete products with brand and name
-- Track stock and backup quantities
+- Track main stock and backup quantities
 - Quick Look feature for instant inventory status
 - Flexible search with partial matching across brand and product names
 - Automatic stock validation and low stock alerts
 
-### Sales Management
+### 💰 Sales Management
 
-- Easy product selection with search functionality
+- Easy product selection with smart search
 - Quick sale processing with quantity validation
+- Custom date/time selection for sales records
 - Real-time stock updates
+- Automatic backup stock utilization
 - Sale confirmation with detailed summaries
 
-### Transaction History
+### 📊 Transaction History
 
 - Comprehensive transaction logging
 - Advanced filtering options:
@@ -30,16 +32,16 @@ A modern, feature-rich inventory management system built with React and Material
 - Daily sales reports with copy functionality
 - Dark-themed date headers for better readability
 
-### User Interface
+### 🎨 User Interface
 
 - Modern Material-UI design
-- Responsive layout
+- Responsive layout for all devices
 - Intuitive navigation
 - Dark mode support
 - Toast notifications for actions
 - Confirmation dialogs for critical operations
 
-## 🚀 Installation
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -47,7 +49,7 @@ A modern, feature-rich inventory management system built with React and Material
 - npm or yarn
 - Git
 
-### Setup Instructions
+### Installation
 
 1. Clone the repository
 
@@ -64,20 +66,7 @@ npm install
 yarn install
 ```
 
-3. Create a .env file in the root directory
-
-```bash
-cp .env.example .env
-```
-
-4. Update the .env file with your configuration
-
-```
-REACT_APP_API_URL=your_api_url
-REACT_APP_API_KEY=your_api_key
-```
-
-5. Start the development server
+3. Start the development server
 
 ```bash
 npm start
@@ -87,71 +76,68 @@ yarn start
 
 The application will be available at `http://localhost:3000`
 
-### Production Build
-
-To create a production build:
-
-```bash
-npm run build
-# or using yarn
-yarn build
-```
-
-## 📚 Project Structure
-
-```
-inventory-management/
-├── src/
-│   ├── components/     # Reusable UI components
-│   ├── pages/         # Page components
-│   ├── services/      # API and other services
-│   ├── utils/         # Utility functions
-│   ├── contexts/      # React contexts
-│   └── App.js         # Main application component
-├── public/            # Static files
-└── package.json       # Project dependencies
-```
-
 ## 🔧 Configuration
 
 ### Environment Variables
 
-- `REACT_APP_API_URL`: Backend API URL
-- `REACT_APP_API_KEY`: API authentication key
-- `REACT_APP_ENV`: Environment (development/production)
+Create a `.env` file in the root directory:
 
-### API Integration
+```env
+REACT_APP_API_URL=http://localhost:5000
+```
 
-The system is designed to work with a RESTful API. Ensure your API implements the following endpoints:
+## 📱 Usage
 
-- `/api/products` - Product management
-- `/api/sales` - Sales operations
-- `/api/transactions` - Transaction history
-- `/api/auth` - Authentication
+### Adding Products
+
+1. Navigate to Inventory
+2. Click "Add Product"
+3. Fill in product details:
+   - Brand
+   - Product Name
+   - Quantity
+   - Backup Quantity
+   - Price
+
+### Recording Sales
+
+1. Go to Sales page
+2. Search and select product
+3. Enter quantity
+4. Optionally select custom date/time
+5. Click "Record Sale"
+
+### Viewing Transactions
+
+1. Open Transaction History
+2. Use filters to find specific transactions:
+   - Date range
+   - Transaction types
+   - Employee
+   - Brand/Product
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a new branch
+2. Create your feature branch
 
 ```bash
 git checkout -b feature/amazing-feature
 ```
 
-3. Make your changes
-4. Commit your changes
+3. Commit your changes
 
 ```bash
 git commit -m "feat: add amazing feature"
 ```
 
-5. Push to the branch
+4. Push to the branch
 
 ```bash
 git push origin feature/amazing-feature
 ```
 
-6. Open a Pull Request
+5. Open a Pull Request
 
 ## 📝 License
 
@@ -160,9 +146,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Material-UI for the amazing component library
-- React community for the excellent documentation
+- React community for excellent documentation
 - All contributors who have helped shape this project
 
 ## 📞 Support
 
-For support, email support@yourdomain.com or open an issue in the repository.
+For support, please open an issue in the repository.
