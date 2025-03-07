@@ -65,10 +65,12 @@ const Inventory = () => {
 
   // Filter products based on search query
   const filteredProducts = products.filter((product) => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      product.name.toLowerCase().includes(searchLower) ||
-      product.brand.toLowerCase().includes(searchLower)
+    if (!searchQuery) return true;
+    const inputTerms = searchQuery.toLowerCase().split(/\s+/);
+    const brandName = product.brand.toLowerCase();
+    const productName = product.name.toLowerCase();
+    return inputTerms.every(
+      (term) => brandName.includes(term) || productName.includes(term)
     );
   });
 
@@ -329,7 +331,7 @@ const Inventory = () => {
     selectedBrands.forEach((brand, index) => {
       const brandProducts = products.filter((p) => p.brand === brand);
       if (brandProducts.length > 0) {
-        report += `${brand}:\n`;
+        report += `[${brand}]:\n`;
         brandProducts.forEach((product) => {
           const totalQuantity = product.quantity + product.backupQuantity;
           report += `${product.name}: ${totalQuantity}\n`;
@@ -493,6 +495,18 @@ const Inventory = () => {
               <Autocomplete
                 options={products}
                 getOptionLabel={(option) => `${option.brand} - ${option.name}`}
+                filterOptions={(options, { inputValue }) => {
+                  if (!inputValue) return options;
+                  const inputTerms = inputValue.toLowerCase().split(/\s+/);
+                  return options.filter((option) => {
+                    const brandName = option.brand.toLowerCase();
+                    const productName = option.name.toLowerCase();
+                    return inputTerms.every(
+                      (term) =>
+                        brandName.includes(term) || productName.includes(term)
+                    );
+                  });
+                }}
                 value={selectedProduct}
                 onChange={(event, newValue) => handleProductSelect(newValue)}
                 renderInput={(params) => (
@@ -624,20 +638,36 @@ const Inventory = () => {
             <Box
               sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
             >
-              <TextField
-                label="Brand"
+              <Autocomplete
+                options={availableBrands}
                 value={formData.brand}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({
-                    ...formData,
-                    brand:
-                      value.charAt(0).toUpperCase() +
-                      value.slice(1).toLowerCase(),
-                  });
+                onChange={(event, newValue) => {
+                  if (newValue) {
+                    setFormData({
+                      ...formData,
+                      brand:
+                        newValue.charAt(0).toUpperCase() +
+                        newValue.slice(1).toLowerCase(),
+                    });
+                  }
                 }}
-                fullWidth
-                required
+                freeSolo
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Brand"
+                    required
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({
+                        ...formData,
+                        brand:
+                          value.charAt(0).toUpperCase() +
+                          value.slice(1).toLowerCase(),
+                      });
+                    }}
+                  />
+                )}
               />
               <TextField
                 label="Product Name"

@@ -183,7 +183,7 @@ const Sales = () => {
                     sx={{ display: "flex", flexDirection: "column", gap: 1 }}
                   >
                     <Typography variant="h6" color="primary">
-                      {selectedProduct.name} - {selectedProduct.brand}
+                      {selectedProduct.brand} - {selectedProduct.name}
                     </Typography>
                     <Typography variant="body1">
                       Price: ${selectedProduct.price.toFixed(2)}

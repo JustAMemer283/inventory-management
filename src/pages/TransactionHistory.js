@@ -20,13 +20,22 @@ import {
   DialogTitle,
   DialogContent,
   TextField,
+  Collapse,
+  Autocomplete,
 } from "@mui/material";
-import { format, isSameDay, startOfToday } from "date-fns";
+import {
+  format,
+  isSameDay,
+  startOfToday,
+  isWithinInterval,
+  parseISO,
+} from "date-fns";
 import { transactionApi } from "../services/api";
 import {
   ContentCopy as ContentCopyIcon,
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
+  FilterList as FilterListIcon,
 } from "@mui/icons-material";
 
 // transaction history page component with filtering options
@@ -40,6 +49,20 @@ const TransactionHistory = () => {
   const [selectedDate, setSelectedDate] = useState(
     format(new Date(), "yyyy-MM-dd")
   );
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    startDate: format(new Date(), "yyyy-MM-dd"),
+    endDate: format(new Date(), "yyyy-MM-dd"),
+    startTime: "00:00",
+    endTime: "23:59",
+    types: [], // Selected transaction types
+    employees: [], // Selected employees
+    selectedBrand: null, // Selected brand (single)
+    selectedProduct: null, // Selected product (single)
+  });
+
+  // Transaction types array
+  const transactionTypes = ["SALE", "NEW", "ADD", "EDIT", "DELETE", "TRANSFER"];
 
   // fetch transactions function
   const fetchTransactions = async () => {
@@ -225,44 +248,172 @@ const TransactionHistory = () => {
     return groups;
   };
 
-  const generateSalesReport = () => {
-    // Create date at start of day in local timezone
-    const selectedDateTime = new Date(selectedDate + "T00:00:00");
+  // Get unique employees from transactions
+  const getUniqueEmployees = () => {
+    const uniqueEmployees = new Set();
+    transactions.forEach((transaction) => {
+      if (transaction.employee) {
+        uniqueEmployees.add(transaction.employee.name);
+      }
+    });
+    return Array.from(uniqueEmployees);
+  };
 
-    // Filter sales transactions for selected date
-    const filteredSales = transactions.filter((transaction) => {
+  // Get unique brands from transactions
+  const getUniqueBrands = () => {
+    const uniqueBrands = new Set();
+    transactions.forEach((transaction) => {
+      if (transaction.product?.brand) {
+        uniqueBrands.add(transaction.product.brand);
+      }
+    });
+    return Array.from(uniqueBrands);
+  };
+
+  // Get products for selected brand
+  const getProductsForBrand = () => {
+    const products = new Set();
+    transactions.forEach((transaction) => {
+      if (
+        transaction.product?.name &&
+        transaction.product.brand === filters.selectedBrand
+      ) {
+        products.add(transaction.product.name);
+      }
+    });
+    return Array.from(products);
+  };
+
+  // Handle employee filter toggle
+  const handleEmployeeToggle = (employee) => {
+    setFilters((prev) => ({
+      ...prev,
+      employees: prev.employees.includes(employee)
+        ? prev.employees.filter((e) => e !== employee)
+        : [...prev.employees, employee],
+    }));
+  };
+
+  // Handle brand selection
+  const handleBrandChange = (event, newValue) => {
+    setFilters((prev) => ({
+      ...prev,
+      selectedBrand: newValue,
+      selectedProduct: null, // Reset product when brand changes
+    }));
+  };
+
+  // Handle product selection
+  const handleProductChange = (event, newValue) => {
+    setFilters((prev) => ({
+      ...prev,
+      selectedProduct: newValue,
+    }));
+  };
+
+  // Filter transactions based on all criteria
+  const filterTransactions = (transactions) => {
+    return transactions.filter((transaction) => {
       const transactionDate = new Date(transaction.date);
+      const startDateTime = new Date(
+        filters.startDate + "T" + filters.startTime
+      );
+      const endDateTime = new Date(filters.endDate + "T" + filters.endTime);
+
+      // Check if within date/time range
+      const isInDateRange = isWithinInterval(transactionDate, {
+        start: startDateTime,
+        end: endDateTime,
+      });
+
+      // Check if type matches
+      const isTypeMatch =
+        filters.types.length === 0 || filters.types.includes(transaction.type);
+
+      // Check if employee matches
+      const isEmployeeMatch =
+        filters.employees.length === 0 ||
+        filters.employees.includes(transaction.employee?.name);
+
+      // Check if brand matches
+      const isBrandMatch =
+        !filters.selectedBrand ||
+        (transaction.product &&
+          transaction.product.brand === filters.selectedBrand);
+
+      // Check if product matches
+      const isProductMatch =
+        !filters.selectedProduct ||
+        (transaction.product &&
+          transaction.product.name === filters.selectedProduct);
+
       return (
-        transaction.type === "SALE" &&
-        transactionDate.getDate() === selectedDateTime.getDate() &&
-        transactionDate.getMonth() === selectedDateTime.getMonth() &&
-        transactionDate.getFullYear() === selectedDateTime.getFullYear()
+        isInDateRange &&
+        isTypeMatch &&
+        isEmployeeMatch &&
+        isBrandMatch &&
+        isProductMatch
       );
     });
+  };
 
-    // Sort by time
-    filteredSales.sort((a, b) => new Date(a.date) - new Date(b.date));
+  const generateSalesReport = () => {
+    try {
+      // Validate the date input
+      if (
+        !selectedDate ||
+        selectedDate === "0" ||
+        !selectedDate.match(/^\d{4}-\d{2}-\d{2}$/)
+      ) {
+        return "Please select a valid date.";
+      }
 
-    // Generate report with just the date and sales
-    const reportDate = selectedDateTime;
-    let report = `Sale (${format(reportDate, "do MMM")}, ${format(
-      reportDate,
-      "EEEE"
-    )}):\n`;
+      // Create date at start of day in local timezone
+      const selectedDateTime = new Date(selectedDate + "T00:00:00");
 
-    if (filteredSales.length === 0) {
-      report += "No sales recorded for this date.\n";
-    } else {
-      filteredSales.forEach((sale) => {
-        const time = format(new Date(sale.date), "hh:mm a");
-        const productInfo = sale.product
-          ? `${sale.product.brand} - ${sale.product.name}`
-          : "Unknown Product";
-        report += `${time} - ${productInfo} - ${sale.quantity}\n`;
+      // Check if the date is valid
+      if (isNaN(selectedDateTime.getTime())) {
+        return "Please select a valid date.";
+      }
+
+      // Filter sales transactions for selected date
+      const filteredSales = transactions.filter((transaction) => {
+        const transactionDate = new Date(transaction.date);
+        return (
+          transaction.type === "SALE" &&
+          transactionDate.getDate() === selectedDateTime.getDate() &&
+          transactionDate.getMonth() === selectedDateTime.getMonth() &&
+          transactionDate.getFullYear() === selectedDateTime.getFullYear()
+        );
       });
-    }
 
-    return report;
+      // Sort by time
+      filteredSales.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      // Generate report with just the date and sales
+      const reportDate = selectedDateTime;
+      let report = `Sale (${format(reportDate, "do MMM")}, ${format(
+        reportDate,
+        "EEEE"
+      )}):\n`;
+
+      if (filteredSales.length === 0) {
+        report += "No sales recorded for this date.\n";
+      } else {
+        filteredSales.forEach((sale) => {
+          const time = format(new Date(sale.date), "hh:mm a");
+          const productInfo = sale.product
+            ? `${sale.product.brand} - ${sale.product.name}`
+            : "Unknown Product";
+          report += `${time} - ${productInfo} - ${sale.quantity}\n`;
+        });
+      }
+
+      return report;
+    } catch (error) {
+      console.error("Error generating report:", error);
+      return "Error generating report. Please select a valid date.";
+    }
   };
 
   const handleCopyReport = async () => {
@@ -275,6 +426,32 @@ const TransactionHistory = () => {
     }
   };
 
+  // Add validation to the date input
+  const handleDateChange = (e) => {
+    const value = e.target.value;
+    if (!value || value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      setSelectedDate(value);
+    }
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (field) => (event) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
+
+  // Handle type filter toggle
+  const handleTypeToggle = (type) => {
+    setFilters((prev) => ({
+      ...prev,
+      types: prev.types.includes(type)
+        ? prev.types.filter((t) => t !== type)
+        : [...prev.types, type],
+    }));
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -285,7 +462,9 @@ const TransactionHistory = () => {
     );
   }
 
-  const transactionGroups = groupTransactionsByDate(transactions);
+  const transactionGroups = groupTransactionsByDate(
+    filterTransactions(transactions)
+  );
 
   return (
     <Container maxWidth="lg">
@@ -294,15 +473,148 @@ const TransactionHistory = () => {
           <Typography variant="h4" component="h1" gutterBottom>
             Transaction History
           </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<ContentCopyIcon />}
-            onClick={() => setOpenReport(true)}
-          >
-            Generate Today's Report
-          </Button>
+          <Box>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<FilterListIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+              sx={{ mr: 2 }}
+            >
+              Filters
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<ContentCopyIcon />}
+              onClick={() => setOpenReport(true)}
+            >
+              Generate Today's Report
+            </Button>
+          </Box>
         </Box>
+
+        {/* Filters Section */}
+        <Collapse in={showFilters}>
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                <TextField
+                  label="Start Date"
+                  type="date"
+                  value={filters.startDate}
+                  onChange={handleFilterChange("startDate")}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="Start Time"
+                  type="time"
+                  value={filters.startTime}
+                  onChange={handleFilterChange("startTime")}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="End Date"
+                  type="date"
+                  value={filters.endDate}
+                  onChange={handleFilterChange("endDate")}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="End Time"
+                  type="time"
+                  value={filters.endTime}
+                  onChange={handleFilterChange("endTime")}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Typography variant="body2" sx={{ width: "100%" }}>
+                  Transaction Types:
+                </Typography>
+                {transactionTypes.map((type) => (
+                  <Chip
+                    key={type}
+                    label={type}
+                    color={
+                      filters.types.includes(type)
+                        ? getTransactionColor(type)
+                        : "default"
+                    }
+                    onClick={() => handleTypeToggle(type)}
+                    variant={
+                      filters.types.includes(type) ? "filled" : "outlined"
+                    }
+                    sx={{
+                      "&:hover": {
+                        backgroundColor: filters.types.includes(type)
+                          ? undefined
+                          : "rgba(0, 0, 0, 0.04)",
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Typography variant="body2" sx={{ width: "100%" }}>
+                  Employees:
+                </Typography>
+                {getUniqueEmployees().map((employee) => (
+                  <Chip
+                    key={employee}
+                    label={employee}
+                    color={
+                      filters.employees.includes(employee)
+                        ? "primary"
+                        : "default"
+                    }
+                    onClick={() => handleEmployeeToggle(employee)}
+                    variant={
+                      filters.employees.includes(employee)
+                        ? "filled"
+                        : "outlined"
+                    }
+                    sx={{
+                      "&:hover": {
+                        backgroundColor: filters.employees.includes(employee)
+                          ? undefined
+                          : "rgba(0, 0, 0, 0.04)",
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+              <Box sx={{ display: "flex", gap: 2, flexDirection: "column" }}>
+                <Autocomplete
+                  options={getUniqueBrands()}
+                  value={filters.selectedBrand}
+                  onChange={handleBrandChange}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Brand" size="small" />
+                  )}
+                  sx={{ minWidth: 200 }}
+                />
+
+                {/* Product dropdown - only show if brand is selected */}
+                {filters.selectedBrand && (
+                  <Autocomplete
+                    options={getProductsForBrand()}
+                    value={filters.selectedProduct}
+                    onChange={handleProductChange}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Select Product"
+                        size="small"
+                      />
+                    )}
+                    sx={{ minWidth: 200 }}
+                  />
+                )}
+              </Box>
+            </Box>
+          </Paper>
+        </Collapse>
 
         {/* error alert */}
         {error && (
@@ -344,13 +656,14 @@ const TransactionHistory = () => {
                     <TableCell
                       colSpan={4}
                       sx={{
-                        backgroundColor: "action.hover",
+                        backgroundColor: "#1e1e1e",
                         py: 1,
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
                       }}
                     >
                       <Typography
                         variant="subtitle1"
-                        sx={{ fontWeight: "medium" }}
+                        sx={{ fontWeight: "medium", color: "#fff" }}
                       >
                         {format(group.date, "EEEE, MMMM d, yyyy")}
                       </Typography>
@@ -418,10 +731,14 @@ const TransactionHistory = () => {
               <TextField
                 type="date"
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                onChange={handleDateChange}
                 label="Select Date"
                 InputLabelProps={{ shrink: true }}
                 fullWidth
+                inputProps={{
+                  min: "2000-01-01",
+                  max: "2099-12-31",
+                }}
               />
             </Box>
             <Box sx={{ whiteSpace: "pre-wrap", fontFamily: "monospace" }}>
