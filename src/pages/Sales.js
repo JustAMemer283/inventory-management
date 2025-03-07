@@ -153,6 +153,17 @@ const Sales = () => {
               <Autocomplete
                 options={products}
                 getOptionLabel={(option) => `${option.brand} - ${option.name}`}
+                filterOptions={(options, { inputValue }) => {
+                  const inputTerms = inputValue.toLowerCase().split(/\s+/);
+                  return options.filter((option) => {
+                    const brandName = option.brand.toLowerCase();
+                    const productName = option.name.toLowerCase();
+                    return inputTerms.every(
+                      (term) =>
+                        brandName.includes(term) || productName.includes(term)
+                    );
+                  });
+                }}
                 value={selectedProduct}
                 onChange={(event, newValue) => handleProductSelect(newValue)}
                 renderInput={(params) => (
