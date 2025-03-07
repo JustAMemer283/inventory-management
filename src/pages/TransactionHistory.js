@@ -76,7 +76,9 @@ const TransactionHistory = () => {
               Sold {transaction.quantity} units of {productName}
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              Remaining Stock: {transaction.remainingQuantity} | Backup:{" "}
+              {transaction.notes}
+              <br />
+              Current Stock: {transaction.remainingQuantity} | Backup:{" "}
               {transaction.backupQuantity}
             </Typography>
           </>
