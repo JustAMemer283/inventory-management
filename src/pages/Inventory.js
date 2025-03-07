@@ -152,11 +152,17 @@ const Inventory = () => {
   // handle form submit
   const handleSubmit = async () => {
     try {
+      // Validate required fields
+      if (!formData.brand || !formData.name) {
+        setError("Brand and Product Name are required");
+        return;
+      }
+
       const submissionData = {
         ...formData,
-        quantity: Number(formData.quantity),
-        backupQuantity: Number(formData.backupQuantity),
-        price: Number(formData.price),
+        price: Number(formData.price) || 0,
+        quantity: Number(formData.quantity) || 0,
+        backupQuantity: Number(formData.backupQuantity) || 0,
       };
 
       if (editingProduct) {
@@ -486,7 +492,7 @@ const Inventory = () => {
             >
               <Autocomplete
                 options={products}
-                getOptionLabel={(option) => `${option.name} - ${option.brand}`}
+                getOptionLabel={(option) => `${option.brand} - ${option.name}`}
                 value={selectedProduct}
                 onChange={(event, newValue) => handleProductSelect(newValue)}
                 renderInput={(params) => (
@@ -619,16 +625,32 @@ const Inventory = () => {
               sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
             >
               <TextField
-                label="Product Name"
-                value={formData.name}
-                onChange={handleInputChange("name")}
+                label="Brand"
+                value={formData.brand}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({
+                    ...formData,
+                    brand:
+                      value.charAt(0).toUpperCase() +
+                      value.slice(1).toLowerCase(),
+                  });
+                }}
                 fullWidth
                 required
               />
               <TextField
-                label="Brand"
-                value={formData.brand}
-                onChange={handleInputChange("brand")}
+                label="Product Name"
+                value={formData.name}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({
+                    ...formData,
+                    name:
+                      value.charAt(0).toUpperCase() +
+                      value.slice(1).toLowerCase(),
+                  });
+                }}
                 fullWidth
                 required
               />
@@ -638,16 +660,14 @@ const Inventory = () => {
                 value={formData.price}
                 onChange={handleInputChange("price")}
                 fullWidth
-                required
                 inputProps={{ min: 0, step: "0.01" }}
               />
               <TextField
-                label="Quantity"
+                label="In Stock Quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={handleInputChange("quantity")}
                 fullWidth
-                required
                 inputProps={{ min: 0 }}
               />
               <TextField
@@ -656,7 +676,6 @@ const Inventory = () => {
                 value={formData.backupQuantity}
                 onChange={handleInputChange("backupQuantity")}
                 fullWidth
-                required
                 inputProps={{ min: 0 }}
               />
             </Box>
