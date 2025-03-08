@@ -9,14 +9,50 @@ router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // find user
-    const user = await User.findOne({ username });
+    // Validate input
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ message: "Username and password are required" });
+    }
+
+    // Set a timeout for the database operation
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Database operation timed out")), 5000)
+    );
+
+    // find user with timeout
+    let user;
+    try {
+      user = await Promise.race([
+        User.findOne({ username }).lean().exec(),
+        timeoutPromise,
+      ]);
+    } catch (error) {
+      console.error("User lookup timeout:", error);
+      return res
+        .status(504)
+        .json({ message: "Login request timed out. Please try again." });
+    }
+
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    // check password with timeout
+    let isMatch;
+    try {
+      isMatch = await Promise.race([
+        bcrypt.compare(password, user.password),
+        timeoutPromise,
+      ]);
+    } catch (error) {
+      console.error("Password comparison timeout:", error);
+      return res
+        .status(504)
+        .json({ message: "Login request timed out. Please try again." });
+    }
+
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }

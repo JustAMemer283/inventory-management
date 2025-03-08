@@ -51,8 +51,13 @@ mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+    serverSelectionTimeoutMS: 10000, // Increased timeout to 10s
     socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+    connectTimeoutMS: 10000, // Connection timeout
+    heartbeatFrequencyMS: 30000, // Check server status every 30 seconds
+    retryWrites: true,
+    w: "majority",
+    maxPoolSize: 10, // Limit connection pool size
   })
   .then(() => {
     console.log("mongodb atlas connected:", mongoose.connection.host);
@@ -66,6 +71,11 @@ mongoose
 // Handle MongoDB connection errors after initial connection
 mongoose.connection.on("error", (err) => {
   console.error("MongoDB error after initial connection:", err);
+});
+
+// Add connection recovery logic
+mongoose.connection.on("disconnected", () => {
+  console.log("MongoDB disconnected, attempting to reconnect...");
 });
 
 // routes
