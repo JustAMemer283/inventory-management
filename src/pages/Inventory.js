@@ -426,8 +426,9 @@ const Inventory = () => {
   // Define speed dial actions
   const actions = [
     {
-      icon: <AddIcon />,
+      icon: <AddIcon sx={{ fontSize: 24 }} />,
       name: "Add Product",
+      tooltip: "Add New Product",
       onClick: () => {
         setEditingProduct(null);
         setFormData({
@@ -442,16 +443,18 @@ const Inventory = () => {
       },
     },
     {
-      icon: <ShippingIcon />,
+      icon: <ShippingIcon sx={{ fontSize: 24 }} />,
       name: "Update Stock",
+      tooltip: "Update Product Stock",
       onClick: () => {
         setOpenUpdateStock(true);
         setSpeedDialOpen(false);
       },
     },
     {
-      icon: <AssessmentIcon />,
+      icon: <AssessmentIcon sx={{ fontSize: 24 }} />,
       name: "Quick Look",
+      tooltip: "Inventory Quick Look",
       onClick: () => {
         setOpenQuickLook(true);
         setSpeedDialOpen(false);
@@ -538,19 +541,57 @@ const Inventory = () => {
         {isMobile && (
           <SpeedDial
             ariaLabel="Inventory actions"
-            sx={{ position: "fixed", bottom: 16, right: 16 }}
+            sx={{
+              position: "fixed",
+              bottom: 16,
+              right: 16,
+              "& .MuiSpeedDial-fab": {
+                boxShadow: "0 0 10px rgba(255, 255, 255, 0.3)",
+                border: "2px solid rgba(255, 255, 255, 0.2)",
+              },
+            }}
             icon={<SpeedDialIcon />}
             open={speedDialOpen}
             onOpen={() => setSpeedDialOpen(true)}
             onClose={() => setSpeedDialOpen(false)}
+            FabProps={{
+              sx: {
+                bgcolor: "#4477ff",
+                "&:hover": {
+                  bgcolor: "#3366cc",
+                },
+              },
+            }}
           >
             {actions.map((action) => (
               <SpeedDialAction
                 key={action.name}
                 icon={action.icon}
-                tooltipTitle={action.name}
+                tooltipTitle={action.tooltip || action.name}
                 tooltipOpen
                 onClick={action.onClick}
+                FabProps={{
+                  sx: {
+                    bgcolor: "#333",
+                    color: "white",
+                    border: "2px solid rgba(255, 255, 255, 0.5)",
+                    boxShadow: "0 0 8px rgba(255, 255, 255, 0.3)",
+                    "&:hover": {
+                      bgcolor: "#4477ff",
+                      border: "2px solid white",
+                    },
+                  },
+                }}
+                TooltipProps={{
+                  sx: {
+                    bgcolor: "rgba(0, 0, 0, 0.8)",
+                    color: "white",
+                    fontWeight: "bold",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                    borderRadius: "4px",
+                    p: 1,
+                  },
+                }}
               />
             ))}
           </SpeedDial>
