@@ -92,13 +92,12 @@ const Navigation = () => {
           variant="h6"
           component="div"
           sx={{
-            fontWeight: 600,
-            cursor: "pointer",
-            fontSize: { xs: "1.1rem", sm: "1.25rem" },
+            flexGrow: 1,
+            display: { xs: "none", sm: "block" },
+            fontWeight: "bold",
           }}
-          onClick={() => navigate("/")}
         >
-          Inventory Management System
+          Smoky Seven
         </Typography>
 
         {user && (

@@ -91,16 +91,11 @@ const Login = () => {
           <Typography
             variant="h4"
             component="h1"
+            align="center"
             gutterBottom
-            sx={{
-              fontWeight: 600,
-              background: "linear-gradient(45deg, #fff, #999)",
-              backgroundClip: "text",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
+            sx={{ fontWeight: "bold", color: "primary.main" }}
           >
-            Inventory Management
+            Smoky Seven
           </Typography>
           <Typography
             variant="subtitle1"

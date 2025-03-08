@@ -1,4 +1,4 @@
-# Inventory Management System
+# Smoky Seven
 
 A modern, feature-rich inventory management system built with React and Material-UI. Perfect for small to medium businesses to track inventory, manage sales, and monitor transactions in real-time.
 

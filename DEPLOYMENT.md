@@ -1,6 +1,6 @@
-# Deployment Guide for Inventory Management System
+# Deployment Guide for Smoky Seven
 
-This guide provides step-by-step instructions for deploying the Inventory Management System to Vercel.
+This guide provides step-by-step instructions for deploying the Smoky Seven to Vercel.
 
 ## Prerequisites
 

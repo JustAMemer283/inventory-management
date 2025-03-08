@@ -16,7 +16,7 @@ const Home = () => {
     <Container maxWidth="md">
       <Box sx={{ mt: 4, textAlign: "center" }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          {welcomeMessage}
+          Welcome to Smoky Seven
         </Typography>
         <Box sx={{ mt: 2 }}>
           <TextField

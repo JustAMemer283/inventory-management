@@ -114,6 +114,11 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// root route
+app.get("/api", (req, res) => {
+  res.json({ message: "Welcome to Smoky Seven API" });
+});
+
 // Serve static assets in production
 if (process.env.NODE_ENV === "production") {
   // Set static folder

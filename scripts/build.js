@@ -62,15 +62,16 @@ try {
       <!DOCTYPE html>
       <html lang="en">
         <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>Inventory Management System</title>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Smoky Seven</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }
+          </style>
         </head>
         <body>
-          <div id="root">
-            <h1>Inventory Management System</h1>
-            <p>The application is currently being updated. Please check back later.</p>
-          </div>
+          <h1>Smoky Seven</h1>
+          <p>The application is currently being updated. Please check back later.</p>
         </body>
       </html>
     `;
