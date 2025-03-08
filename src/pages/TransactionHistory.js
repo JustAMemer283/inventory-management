@@ -447,7 +447,7 @@ const TransactionHistory = () => {
         filteredSales.forEach((sale) => {
           const time = format(new Date(sale.date), "hh:mm a");
           const productInfo = sale.product
-            ? `${sale.product.brand} - ${sale.product.name}`
+            ? `${sale.product.brand} ${sale.product.name}`
             : "Unknown Product";
           report += `${time} - ${productInfo} - ${sale.quantity}\n`;
         });
