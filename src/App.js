@@ -32,7 +32,7 @@ const App = () => {
             <Navigation />
             <Box sx={{ p: 3 }}>
               <Routes>
-                {/* public routes */}
+                {/* public routes - Login component has internal redirect logic */}
                 <Route path="/login" element={<Login />} />
 
                 {/* protected routes */}

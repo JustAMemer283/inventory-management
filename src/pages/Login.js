@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import useAuthRedirect from "../hooks/useAuthRedirect";
 
 // login page component
 const Login = () => {
@@ -25,6 +26,12 @@ const Login = () => {
   // get navigate function from router and auth context
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Redirect if already authenticated
+  useAuthRedirect({
+    redirectTo: "/sales",
+    redirectIfAuthenticated: true,
+  });
 
   // handle form input change
   const handleInputChange = (field) => (event) => {
