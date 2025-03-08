@@ -746,14 +746,20 @@ const Inventory = () => {
                         newValue.charAt(0).toUpperCase() +
                         newValue.slice(1).toLowerCase(),
                     });
+                    dismissKeyboard(true);
                   }
                 }}
+                onBlur={() => dismissKeyboard()}
+                blurOnSelect={true}
+                disablePortal={true}
+                openOnFocus={true}
                 freeSolo
                 renderInput={(params) => (
                   <TextField
                     {...params}
                     label="Brand"
                     required
+                    onBlur={() => dismissKeyboard()}
                     onChange={(e) => {
                       const value = e.target.value;
                       setFormData({
@@ -778,6 +784,7 @@ const Inventory = () => {
                       value.slice(1).toLowerCase(),
                   });
                 }}
+                onBlur={() => dismissKeyboard()}
                 fullWidth
                 required
               />
@@ -786,24 +793,40 @@ const Inventory = () => {
                 type="number"
                 value={formData.price}
                 onChange={handleInputChange("price")}
+                onBlur={() => dismissKeyboard()}
                 fullWidth
-                inputProps={{ min: 0, step: "0.01" }}
+                inputProps={{
+                  min: 0,
+                  step: "0.01",
+                  inputMode: "decimal",
+                  pattern: "[0-9]*[.]?[0-9]*",
+                }}
               />
               <TextField
                 label="In Stock Quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={handleInputChange("quantity")}
+                onBlur={() => dismissKeyboard()}
                 fullWidth
-                inputProps={{ min: 0 }}
+                inputProps={{
+                  min: 0,
+                  inputMode: "numeric",
+                  pattern: "[0-9]*",
+                }}
               />
               <TextField
                 label="Backup Quantity"
                 type="number"
                 value={formData.backupQuantity}
                 onChange={handleInputChange("backupQuantity")}
+                onBlur={() => dismissKeyboard()}
                 fullWidth
-                inputProps={{ min: 0 }}
+                inputProps={{
+                  min: 0,
+                  inputMode: "numeric",
+                  pattern: "[0-9]*",
+                }}
               />
             </Box>
           </DialogContent>
