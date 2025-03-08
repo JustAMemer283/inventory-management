@@ -21,6 +21,11 @@ import {
   FormControlLabel,
   Snackbar,
   Chip,
+  useMediaQuery,
+  useTheme,
+  SpeedDial,
+  SpeedDialIcon,
+  SpeedDialAction,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -32,6 +37,7 @@ import {
   Assessment as AssessmentIcon,
   ContentCopy as ContentCopyIcon,
   Close as CloseIcon,
+  Menu as MenuIcon,
 } from "@mui/icons-material";
 import { productApi } from "../services/api";
 
@@ -62,6 +68,11 @@ const Inventory = () => {
   const [openQuickLook, setOpenQuickLook] = useState(false);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [availableBrands, setAvailableBrands] = useState([]);
+  const [speedDialOpen, setSpeedDialOpen] = useState(false);
+
+  // Get theme and check if screen is mobile
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Filter products based on search query
   const filteredProducts = products.filter((product) => {
@@ -355,6 +366,42 @@ const Inventory = () => {
     }
   };
 
+  // Define speed dial actions
+  const actions = [
+    {
+      icon: <AddIcon />,
+      name: "Add Product",
+      onClick: () => {
+        setEditingProduct(null);
+        setFormData({
+          name: "",
+          brand: "",
+          quantity: "",
+          backupQuantity: "",
+          price: "",
+        });
+        setOpenDialog(true);
+        setSpeedDialOpen(false);
+      },
+    },
+    {
+      icon: <ShippingIcon />,
+      name: "Update Stock",
+      onClick: () => {
+        setOpenUpdateStock(true);
+        setSpeedDialOpen(false);
+      },
+    },
+    {
+      icon: <AssessmentIcon />,
+      name: "Quick Look",
+      onClick: () => {
+        setOpenQuickLook(true);
+        setSpeedDialOpen(false);
+      },
+    },
+  ];
+
   // render loading state
   if (loading) {
     return (
@@ -373,42 +420,46 @@ const Inventory = () => {
           <Typography variant="h4" component="h1">
             Inventory
           </Typography>
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AssessmentIcon />}
-              onClick={() => setOpenQuickLook(true)}
-            >
-              Quick Look
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<ShippingIcon />}
-              onClick={() => setOpenUpdateStock(true)}
-            >
-              Update Stock
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setEditingProduct(null);
-                setFormData({
-                  name: "",
-                  brand: "",
-                  quantity: "",
-                  backupQuantity: "",
-                  price: "",
-                });
-                setOpenDialog(true);
-              }}
-            >
-              Add Product
-            </Button>
-          </Box>
+
+          {/* Desktop buttons */}
+          {!isMobile && (
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AssessmentIcon />}
+                onClick={() => setOpenQuickLook(true)}
+              >
+                Quick Look
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<ShippingIcon />}
+                onClick={() => setOpenUpdateStock(true)}
+              >
+                Update Stock
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  setEditingProduct(null);
+                  setFormData({
+                    name: "",
+                    brand: "",
+                    quantity: "",
+                    backupQuantity: "",
+                    price: "",
+                  });
+                  setOpenDialog(true);
+                }}
+              >
+                Add Product
+              </Button>
+            </Box>
+          )}
         </Box>
 
         {/* Search bar */}
@@ -425,6 +476,28 @@ const Inventory = () => {
             ),
           }}
         />
+
+        {/* Mobile SpeedDial */}
+        {isMobile && (
+          <SpeedDial
+            ariaLabel="Inventory actions"
+            sx={{ position: "fixed", bottom: 16, right: 16 }}
+            icon={<SpeedDialIcon />}
+            open={speedDialOpen}
+            onOpen={() => setSpeedDialOpen(true)}
+            onClose={() => setSpeedDialOpen(false)}
+          >
+            {actions.map((action) => (
+              <SpeedDialAction
+                key={action.name}
+                icon={action.icon}
+                tooltipTitle={action.name}
+                tooltipOpen
+                onClick={action.onClick}
+              />
+            ))}
+          </SpeedDial>
+        )}
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
