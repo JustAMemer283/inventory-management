@@ -21,7 +21,9 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://inventory-management-smoky-seven.vercel.app",
+      "https://inventory-management-git-master-mccharlie-sins-projects.vercel.app",
       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+      /\.vercel\.app$/, // Allow all vercel.app subdomains
     ].filter(Boolean),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
@@ -105,8 +107,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Something went wrong!" });
 });
 
-// start server
-const PORT = process.env.SERVER_PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`server is running on port ${PORT}`);
-});
+// For Vercel serverless deployment
+if (process.env.VERCEL) {
+  // Export the Express app as a module
+  module.exports = app;
+} else {
+  // For local development, start the server
+  const PORT = process.env.SERVER_PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`server is running on port ${PORT}`);
+  });
+}
