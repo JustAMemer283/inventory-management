@@ -792,7 +792,11 @@ const TransactionHistory = () => {
                         <TableCell>
                           {renderTransactionDetails(transaction)}
                         </TableCell>
-                        <TableCell>{transaction.employee.name}</TableCell>
+                        <TableCell>
+                          {transaction.employee
+                            ? transaction.employee.name
+                            : "Deleted User"}
+                        </TableCell>
                         <TableCell>
                           {format(new Date(transaction.date), "HH:mm:ss")}
                         </TableCell>
@@ -859,7 +863,9 @@ const TransactionHistory = () => {
                           sx={{ mr: 0.5, color: "text.secondary" }}
                         />
                         <Typography variant="body2" color="text.secondary">
-                          {transaction.employee.name}
+                          {transaction.employee
+                            ? transaction.employee.name
+                            : "Deleted User"}
                         </Typography>
                       </Box>
                     </CardContent>

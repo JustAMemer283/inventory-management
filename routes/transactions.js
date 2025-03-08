@@ -32,7 +32,18 @@ router.get("/", auth, async (req, res) => {
           return doc;
         },
       })
-      .populate("employee", "name")
+      .populate({
+        path: "employee",
+        select: "name",
+        // Handle deleted employees
+        transform: (doc) => {
+          if (!doc) {
+            // If employee is deleted, return a placeholder
+            return { name: "Deleted User" };
+          }
+          return doc;
+        },
+      })
       .sort({ date: -1 });
 
     res.json(transactions);
@@ -61,7 +72,18 @@ router.get("/:id", auth, async (req, res) => {
   try {
     const transaction = await Transaction.findById(req.params.id)
       .populate("product", "name brand")
-      .populate("employee", "name");
+      .populate({
+        path: "employee",
+        select: "name",
+        // Handle deleted employees
+        transform: (doc) => {
+          if (!doc) {
+            // If employee is deleted, return a placeholder
+            return { name: "Deleted User" };
+          }
+          return doc;
+        },
+      });
 
     if (!transaction) {
       return res.status(404).json({ message: "Transaction not found" });
