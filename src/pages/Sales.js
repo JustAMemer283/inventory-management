@@ -30,6 +30,7 @@ import {
 } from "@mui/icons-material";
 import { productApi } from "../services/api";
 import { format } from "date-fns";
+import { dismissKeyboard } from "../utils/keyboard";
 
 // sales page component for recording sales
 const Sales = () => {
@@ -75,6 +76,11 @@ const Sales = () => {
     setSelectedProduct(product);
     setQuantity(1);
     setError(null);
+
+    // Dismiss keyboard on mobile devices
+    if (product) {
+      dismissKeyboard(true);
+    }
   };
 
   // calculate total available quantity
@@ -173,12 +179,17 @@ const Sales = () => {
               }}
               value={selectedProduct}
               onChange={(event, newValue) => handleProductSelect(newValue)}
+              onBlur={() => dismissKeyboard()}
+              blurOnSelect={true}
+              disablePortal={true}
+              openOnFocus={true}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label="Search Product"
                   variant="outlined"
                   fullWidth
+                  onBlur={() => dismissKeyboard()}
                 />
               )}
             />
@@ -215,12 +226,17 @@ const Sales = () => {
                     label="Quantity to Sell"
                     type="number"
                     value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      setQuantity(parseInt(e.target.value) || 0);
+                    }}
+                    onBlur={() => dismissKeyboard()}
                     fullWidth
                     required
                     inputProps={{
                       min: 1,
                       max: getTotalQuantity(selectedProduct),
+                      inputMode: "numeric",
+                      pattern: "[0-9]*",
                     }}
                     helperText={
                       quantity > selectedProduct.quantity
@@ -262,6 +278,7 @@ const Sales = () => {
                       type="datetime-local"
                       value={customDateTime}
                       onChange={(e) => setCustomDateTime(e.target.value)}
+                      onBlur={() => dismissKeyboard()}
                       sx={{
                         width: isMobile ? "100%" : "auto",
                         minWidth: isMobile ? "unset" : 250,
