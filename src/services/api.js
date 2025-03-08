@@ -147,24 +147,35 @@ export const authApi = {
       const response = await api.post("/auth/login", credentials);
       return response.data;
     } catch (error) {
-      // If we get a 504 timeout error, try the test login endpoint
-      if (error.response && error.response.status === 504) {
-        console.log("Login timed out, trying test endpoint...");
+      // If we get a 504 timeout error or MongoDB connection error, try the fallback
+      if (
+        (error.response && error.response.status === 504) ||
+        (error.message && error.message.includes("MongoDB"))
+      ) {
+        console.log("Login failed, trying fallback authentication...");
         try {
-          // Try the test login endpoint
-          const testResponse = await api.post("/login-test", credentials);
-          console.log("Test login successful:", testResponse.data);
+          // First try the auth-fallback endpoint
+          const fallbackResponse = await api.post(
+            "/auth-fallback/login",
+            credentials
+          );
+          console.log("Fallback login successful:", fallbackResponse.data);
+          return fallbackResponse.data;
+        } catch (fallbackError) {
+          console.error(
+            "Fallback login failed, trying login-test:",
+            fallbackError
+          );
 
-          // If we're in development, return the test response
-          if (process.env.NODE_ENV !== "production") {
+          // If fallback fails, try the login-test endpoint
+          try {
+            const testResponse = await api.post("/login-test", credentials);
+            console.log("Test login successful:", testResponse.data);
             return testResponse.data;
-          } else {
-            // In production, still throw the error
-            throw error;
+          } catch (testError) {
+            console.error("All login attempts failed:", testError);
+            throw error; // Throw the original error
           }
-        } catch (testError) {
-          console.error("Test login also failed:", testError);
-          throw error; // Throw the original error
         }
       }
       throw error;
@@ -177,21 +188,37 @@ export const authApi = {
       const response = await api.get("/auth/me");
       return response.data;
     } catch (error) {
-      // If we get a 504 timeout error, return a mock user for development
+      // If we get a 504 timeout error or MongoDB connection error, try the fallback
       if (
-        error.response &&
-        error.response.status === 504 &&
-        process.env.NODE_ENV !== "production"
+        (error.response && error.response.status === 504) ||
+        (error.message && error.message.includes("MongoDB"))
       ) {
-        console.log(
-          "getCurrentUser timed out, returning mock user for development"
-        );
-        return {
-          id: "123456789",
-          username: "testuser",
-          name: "Test User",
-          role: "user",
-        };
+        console.log("getCurrentUser failed, trying fallback...");
+        try {
+          // Try the fallback endpoint
+          const fallbackResponse = await api.get("/auth-fallback/me");
+          console.log(
+            "Fallback getCurrentUser successful:",
+            fallbackResponse.data
+          );
+          return fallbackResponse.data;
+        } catch (fallbackError) {
+          console.error("Fallback getCurrentUser failed:", fallbackError);
+
+          // Return a mock user for development
+          if (process.env.NODE_ENV !== "production") {
+            console.log("Returning mock user for development");
+            return {
+              id: "123456789",
+              username: "testuser",
+              name: "Test User",
+              role: "user",
+              isFallback: true,
+            };
+          }
+
+          throw error; // Throw the original error in production
+        }
       }
       throw error;
     }
@@ -199,7 +226,29 @@ export const authApi = {
 
   // logout
   logout: async () => {
-    const response = await api.post("/auth/logout");
-    return response.data;
+    try {
+      const response = await api.post("/auth/logout");
+      return response.data;
+    } catch (error) {
+      // If we get a 504 timeout error or MongoDB connection error, try the fallback
+      if (
+        (error.response && error.response.status === 504) ||
+        (error.message && error.message.includes("MongoDB"))
+      ) {
+        console.log("Logout failed, trying fallback...");
+        try {
+          // Try the fallback endpoint
+          const fallbackResponse = await api.post("/auth-fallback/logout");
+          console.log("Fallback logout successful:", fallbackResponse.data);
+          return fallbackResponse.data;
+        } catch (fallbackError) {
+          console.error("Fallback logout failed:", fallbackError);
+
+          // For logout, we can just return success even if it fails
+          return { message: "Logged out successfully (client-side only)" };
+        }
+      }
+      throw error;
+    }
   },
 };

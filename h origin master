@@ -1,0 +1,5 @@
+[33mcommit ed325f064d4f6364b1acb129a9b230467d3eea72[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m
+Author: McCharlie Sins <vkyd1909@gmail.com>
+Date:   Fri Mar 7 21:31:36 2025 -0500
+
+    fix: improve timeout handling for login and api requests

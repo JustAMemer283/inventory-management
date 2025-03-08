@@ -47,26 +47,44 @@ app.use(
 );
 
 // connect to mongodb
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 10000, // Increased timeout to 10s
-    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
-    connectTimeoutMS: 10000, // Connection timeout
-    heartbeatFrequencyMS: 30000, // Check server status every 30 seconds
-    retryWrites: true,
-    w: "majority",
-    maxPoolSize: 10, // Limit connection pool size
-  })
-  .then(() => {
-    console.log("mongodb atlas connected:", mongoose.connection.host);
-  })
-  .catch((err) => {
-    console.error("mongodb connection error:", err);
-    // Don't crash the server on initial connection error
-    // It will retry automatically
-  });
+const connectToDatabase = async () => {
+  try {
+    console.log("Attempting to connect to MongoDB Atlas...");
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000, // Increased timeout to 10s
+      socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+      connectTimeoutMS: 10000, // Connection timeout
+      heartbeatFrequencyMS: 30000, // Check server status every 30 seconds
+      retryWrites: true,
+      w: "majority",
+      maxPoolSize: 10, // Limit connection pool size
+    });
+    console.log("MongoDB Atlas connected:", mongoose.connection.host);
+    return true;
+  } catch (err) {
+    console.error("MongoDB connection error:", err);
+
+    // Check if the error is related to IP whitelist
+    if (err.message && err.message.includes("IP that isn't whitelisted")) {
+      console.error(
+        "IP WHITELIST ERROR: Please add your Vercel deployment IP to MongoDB Atlas whitelist"
+      );
+      console.error(
+        "Visit: https://www.mongodb.com/docs/atlas/security-whitelist/"
+      );
+      console.error(
+        "For Vercel deployments, you may need to allow access from anywhere (0.0.0.0/0)"
+      );
+    }
+
+    return false;
+  }
+};
+
+// Try to connect to the database
+connectToDatabase();
 
 // Handle MongoDB connection errors after initial connection
 mongoose.connection.on("error", (err) => {
@@ -76,6 +94,9 @@ mongoose.connection.on("error", (err) => {
 // Add connection recovery logic
 mongoose.connection.on("disconnected", () => {
   console.log("MongoDB disconnected, attempting to reconnect...");
+  setTimeout(() => {
+    connectToDatabase();
+  }, 5000); // Wait 5 seconds before reconnecting
 });
 
 // routes
