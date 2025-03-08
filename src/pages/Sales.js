@@ -21,6 +21,8 @@ import {
   Paper,
   FormControlLabel,
   Switch,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -44,6 +46,10 @@ const Sales = () => {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  // Get theme and check if screen is mobile
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // fetch products on component mount
   useEffect(() => {
@@ -112,22 +118,11 @@ const Sales = () => {
     setSuccessMessage("");
   };
 
-  // render loading state
-  if (loading) {
-    return (
-      <Container maxWidth="md">
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
-  }
-
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ px: isMobile ? 1 : 3 }}>
       <Box sx={{ mt: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Record Sale
+          Sales
         </Typography>
 
         {/* error alert */}
@@ -138,22 +133,29 @@ const Sales = () => {
         )}
 
         {/* Success Snackbar */}
-        <Snackbar
-          open={!!successMessage}
-          autoHideDuration={3000}
-          onClose={handleSnackbarClose}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        >
-          <Alert
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Snackbar
+            open={!!successMessage}
+            autoHideDuration={6000}
             onClose={handleSnackbarClose}
-            severity="success"
-            sx={{ width: "100%" }}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
           >
-            {successMessage}
-          </Alert>
-        </Snackbar>
+            <Alert
+              onClose={handleSnackbarClose}
+              severity="success"
+              variant="filled"
+              sx={{ width: "100%" }}
+            >
+              {successMessage}
+            </Alert>
+          </Snackbar>
+        )}
 
-        <Paper sx={{ p: 3, mt: 2 }}>
+        <Paper sx={{ p: isMobile ? 2 : 3, mt: 2 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <Autocomplete
               options={products}
@@ -191,7 +193,14 @@ const Sales = () => {
                   <Typography variant="body1">
                     Price: ${selectedProduct.price.toFixed(2)}
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 4, mt: 1 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: isMobile ? "column" : "row",
+                      gap: isMobile ? 1 : 4,
+                      mt: 1,
+                    }}
+                  >
                     <Typography variant="body1" color="success.main">
                       In Stock: {selectedProduct.quantity}
                     </Typography>
@@ -231,7 +240,14 @@ const Sales = () => {
                 </Box>
 
                 {/* Custom Date Toggle and Fields */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: isMobile ? "column" : "row",
+                    alignItems: isMobile ? "flex-start" : "center",
+                    gap: 2,
+                  }}
+                >
                   <FormControlLabel
                     control={
                       <Switch
@@ -246,7 +262,10 @@ const Sales = () => {
                       type="datetime-local"
                       value={customDateTime}
                       onChange={(e) => setCustomDateTime(e.target.value)}
-                      sx={{ minWidth: 250 }}
+                      sx={{
+                        width: isMobile ? "100%" : "auto",
+                        minWidth: isMobile ? "unset" : 250,
+                      }}
                       inputProps={{
                         max: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
                       }}
