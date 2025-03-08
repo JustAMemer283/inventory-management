@@ -22,6 +22,12 @@ import {
   TextField,
   Collapse,
   Autocomplete,
+  useMediaQuery,
+  useTheme,
+  Card,
+  CardContent,
+  Grid,
+  Divider,
 } from "@mui/material";
 import {
   format,
@@ -36,6 +42,8 @@ import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
   FilterList as FilterListIcon,
+  Person as PersonIcon,
+  AccessTime as TimeIcon,
 } from "@mui/icons-material";
 
 // transaction history page component with filtering options
@@ -63,6 +71,10 @@ const TransactionHistory = () => {
 
   // Transaction types array
   const transactionTypes = ["SALE", "NEW", "ADD", "EDIT", "DELETE", "TRANSFER"];
+
+  // Get theme and check if screen is mobile
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // fetch transactions function
   const fetchTransactions = async () => {
@@ -467,19 +479,35 @@ const TransactionHistory = () => {
   );
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ px: isMobile ? 1 : 3 }}>
       <Box sx={{ mt: 4 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            justifyContent: "space-between",
+            alignItems: isMobile ? "flex-start" : "center",
+            gap: isMobile ? 2 : 0,
+            mb: 3,
+          }}
+        >
+          <Typography variant="h4" component="h1" gutterBottom={!isMobile}>
             Transaction History
           </Typography>
-          <Box>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              gap: 1,
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
             <Button
               variant="outlined"
               color="primary"
               startIcon={<FilterListIcon />}
               onClick={() => setShowFilters(!showFilters)}
-              sx={{ mr: 2 }}
+              sx={{ mr: isMobile ? 0 : 2, width: isMobile ? "100%" : "auto" }}
             >
               Filters
             </Button>
@@ -488,6 +516,7 @@ const TransactionHistory = () => {
               color="primary"
               startIcon={<ContentCopyIcon />}
               onClick={() => setOpenReport(true)}
+              sx={{ width: isMobile ? "100%" : "auto" }}
             >
               Generate Today's Report
             </Button>
@@ -496,42 +525,60 @@ const TransactionHistory = () => {
 
         {/* Filters Section */}
         <Collapse in={showFilters}>
-          <Paper sx={{ p: 2, mb: 2 }}>
+          <Paper sx={{ p: isMobile ? 2 : 3, mb: 2 }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                <TextField
-                  label="Start Date"
-                  type="date"
-                  value={filters.startDate}
-                  onChange={handleFilterChange("startDate")}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  label="Start Time"
-                  type="time"
-                  value={filters.startTime}
-                  onChange={handleFilterChange("startTime")}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  label="End Date"
-                  type="date"
-                  value={filters.endDate}
-                  onChange={handleFilterChange("endDate")}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  label="End Time"
-                  type="time"
-                  value={filters.endTime}
-                  onChange={handleFilterChange("endTime")}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
+                Date Range
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    label="Start Date"
+                    type="date"
+                    value={filters.startDate}
+                    onChange={handleFilterChange("startDate")}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    label="Start Time"
+                    type="time"
+                    value={filters.startTime}
+                    onChange={handleFilterChange("startTime")}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    label="End Date"
+                    type="date"
+                    value={filters.endDate}
+                    onChange={handleFilterChange("endDate")}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    label="End Time"
+                    type="time"
+                    value={filters.endTime}
+                    onChange={handleFilterChange("endTime")}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 1 }} />
+
+              <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
+                Transaction Types
+              </Typography>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                <Typography variant="body2" sx={{ width: "100%" }}>
-                  Transaction Types:
-                </Typography>
                 {transactionTypes.map((type) => (
                   <Chip
                     key={type}
@@ -551,14 +598,18 @@ const TransactionHistory = () => {
                           ? undefined
                           : "rgba(0, 0, 0, 0.04)",
                       },
+                      margin: "2px",
                     }}
                   />
                 ))}
               </Box>
+
+              <Divider sx={{ my: 1 }} />
+
+              <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
+                Employees
+              </Typography>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                <Typography variant="body2" sx={{ width: "100%" }}>
-                  Employees:
-                </Typography>
                 {getUniqueEmployees().map((employee) => (
                   <Chip
                     key={employee}
@@ -580,38 +631,53 @@ const TransactionHistory = () => {
                           ? undefined
                           : "rgba(0, 0, 0, 0.04)",
                       },
+                      margin: "2px",
                     }}
                   />
                 ))}
               </Box>
-              <Box sx={{ display: "flex", gap: 2, flexDirection: "column" }}>
-                <Autocomplete
-                  options={getUniqueBrands()}
-                  value={filters.selectedBrand}
-                  onChange={handleBrandChange}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Select Brand" size="small" />
-                  )}
-                  sx={{ minWidth: 200 }}
-                />
 
-                {/* Product dropdown - only show if brand is selected */}
-                {filters.selectedBrand && (
+              <Divider sx={{ my: 1 }} />
+
+              <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
+                Products
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
                   <Autocomplete
-                    options={getProductsForBrand()}
-                    value={filters.selectedProduct}
-                    onChange={handleProductChange}
+                    options={getUniqueBrands()}
+                    value={filters.selectedBrand}
+                    onChange={handleBrandChange}
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Select Product"
+                        label="Select Brand"
                         size="small"
+                        fullWidth
                       />
                     )}
-                    sx={{ minWidth: 200 }}
                   />
+                </Grid>
+
+                {/* Product dropdown - only show if brand is selected */}
+                {filters.selectedBrand && (
+                  <Grid item xs={12} sm={6}>
+                    <Autocomplete
+                      options={getProductsForBrand()}
+                      value={filters.selectedProduct}
+                      onChange={handleProductChange}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Select Product"
+                          size="small"
+                          fullWidth
+                        />
+                      )}
+                    />
+                  </Grid>
                 )}
-              </Box>
+              </Grid>
             </Box>
           </Paper>
         </Collapse>
@@ -633,65 +699,134 @@ const TransactionHistory = () => {
           <Alert
             onClose={() => setSuccessMessage("")}
             severity="success"
+            variant="filled"
             sx={{ width: "100%" }}
           >
             {successMessage}
           </Alert>
         </Snackbar>
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Type</TableCell>
-                <TableCell>Details</TableCell>
-                <TableCell>Employee</TableCell>
-                <TableCell>Time</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {transactionGroups.map((group, groupIndex) => (
-                <React.Fragment key={group.date.toISOString()}>
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      sx={{
-                        backgroundColor: "#1e1e1e",
-                        py: 1,
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                      }}
-                    >
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ fontWeight: "medium", color: "#fff" }}
+        {/* Desktop Table View */}
+        {!isMobile && (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Details</TableCell>
+                  <TableCell>Employee</TableCell>
+                  <TableCell>Time</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {transactionGroups.map((group, groupIndex) => (
+                  <React.Fragment key={group.date.toISOString()}>
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        sx={{
+                          backgroundColor: "#1e1e1e",
+                          py: 1,
+                          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                        }}
                       >
-                        {format(group.date, "EEEE, MMMM d, yyyy")}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                  {group.transactions.map((transaction) => (
-                    <TableRow key={transaction._id}>
-                      <TableCell>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{ fontWeight: "medium", color: "#fff" }}
+                        >
+                          {format(group.date, "EEEE, MMMM d, yyyy")}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                    {group.transactions.map((transaction) => (
+                      <TableRow key={transaction._id}>
+                        <TableCell>
+                          <Chip
+                            label={transaction.type}
+                            color={getTransactionColor(transaction.type)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {renderTransactionDetails(transaction)}
+                        </TableCell>
+                        <TableCell>{transaction.employee.name}</TableCell>
+                        <TableCell>
+                          {format(new Date(transaction.date), "HH:mm:ss")}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+
+        {/* Mobile Card View */}
+        {isMobile && (
+          <Box>
+            {transactionGroups.map((group) => (
+              <Box key={group.date.toISOString()} sx={{ mb: 3 }}>
+                <Paper
+                  sx={{
+                    backgroundColor: "#1e1e1e",
+                    py: 1,
+                    px: 2,
+                    mb: 1,
+                    borderRadius: "4px 4px 0 0",
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: "medium", color: "#fff" }}
+                  >
+                    {format(group.date, "EEEE, MMMM d, yyyy")}
+                  </Typography>
+                </Paper>
+
+                {group.transactions.map((transaction) => (
+                  <Card key={transaction._id} sx={{ mb: 1 }}>
+                    <CardContent sx={{ pb: 1 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          mb: 1,
+                        }}
+                      >
                         <Chip
                           label={transaction.type}
                           color={getTransactionColor(transaction.type)}
                           size="small"
                         />
-                      </TableCell>
-                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {format(new Date(transaction.date), "HH:mm:ss")}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ mt: 1 }}>
                         {renderTransactionDetails(transaction)}
-                      </TableCell>
-                      <TableCell>{transaction.employee.name}</TableCell>
-                      <TableCell>
-                        {format(new Date(transaction.date), "HH:mm:ss")}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </React.Fragment>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                      </Box>
+
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mt: 1 }}
+                      >
+                        <PersonIcon
+                          fontSize="small"
+                          sx={{ mr: 0.5, color: "text.secondary" }}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          {transaction.employee.name}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* Sales Report Dialog */}
         <Dialog
@@ -699,6 +834,12 @@ const TransactionHistory = () => {
           onClose={() => setOpenReport(false)}
           maxWidth="md"
           fullWidth
+          PaperProps={{
+            sx: {
+              width: isMobile ? "95%" : undefined,
+              margin: isMobile ? "10px" : undefined,
+            },
+          }}
         >
           <DialogTitle>
             <Box
@@ -741,7 +882,14 @@ const TransactionHistory = () => {
                 }}
               />
             </Box>
-            <Box sx={{ whiteSpace: "pre-wrap", fontFamily: "monospace" }}>
+            <Box
+              sx={{
+                whiteSpace: "pre-wrap",
+                fontFamily: "monospace",
+                fontSize: isMobile ? "0.75rem" : "0.875rem",
+                overflowX: "auto",
+              }}
+            >
               {generateSalesReport()}
             </Box>
           </DialogContent>
