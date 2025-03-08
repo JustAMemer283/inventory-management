@@ -36,8 +36,9 @@ const App = () => {
                 <Route path="/login" element={<Login />} />
 
                 {/* protected routes */}
+                <Route path="/" element={<Navigate to="/sales" replace />} />
                 <Route
-                  path="/"
+                  path="/home"
                   element={
                     <ProtectedRoute>
                       <Home />
@@ -70,7 +71,7 @@ const App = () => {
                 />
 
                 {/* catch all route */}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/sales" replace />} />
               </Routes>
             </Box>
           </Router>

@@ -17,9 +17,9 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // redirect to home if admin access required but user is not admin
+  // redirect to sales if admin access required but user is not admin
   if (adminOnly && user.role !== "admin") {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/sales" replace />;
   }
 
   // render children if authenticated and authorized

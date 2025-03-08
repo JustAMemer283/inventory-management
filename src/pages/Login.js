@@ -49,12 +49,8 @@ const Login = () => {
       // attempt login using auth context
       const response = await login(formData);
 
-      // redirect based on role
-      if (response.user.role === "admin") {
-        navigate("/inventory");
-      } else {
-        navigate("/sales");
-      }
+      // always redirect to sales page
+      navigate("/sales");
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {
