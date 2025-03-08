@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const session = require("express-session");
+const path = require("path");
 const productRoutes = require("./routes/products");
 const authRoutes = require("./routes/auth");
 const transactionRoutes = require("./routes/transactions");
@@ -17,7 +18,11 @@ const app = express();
 // middleware
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "https://inventory-management-smoky-seven.vercel.app",
+      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+    ].filter(Boolean),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -27,13 +32,13 @@ app.use(
 app.use(express.json());
 app.use(
   session({
-    secret: "inventory_management_secret",
+    secret: process.env.JWT_SECRET || "inventory_management_secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   })
@@ -41,23 +46,58 @@ app.use(
 
 // connect to mongodb
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+  })
   .then(() => {
     console.log("mongodb atlas connected:", mongoose.connection.host);
   })
   .catch((err) => {
     console.error("mongodb connection error:", err);
+    // Don't crash the server on initial connection error
+    // It will retry automatically
   });
+
+// Handle MongoDB connection errors after initial connection
+mongoose.connection.on("error", (err) => {
+  console.error("MongoDB error after initial connection:", err);
+});
 
 // routes
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
 
-// basic route
-app.get("/", (req, res) => {
-  res.json({ message: "welcome to inventory management api" });
+// health check endpoint
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    message: "Server is running",
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+  });
 });
+
+// Serve static assets in production
+if (process.env.NODE_ENV === "production") {
+  // Set static folder
+  app.use(express.static("build"));
+
+  // For any route that is not an API route, serve the index.html
+  app.get("*", (req, res) => {
+    if (!req.path.startsWith("/api")) {
+      res.sendFile(path.resolve(__dirname, "build", "index.html"));
+    }
+  });
+} else {
+  // basic route for development
+  app.get("/", (req, res) => {
+    res.json({ message: "welcome to inventory management api" });
+  });
+}
 
 // error handling middleware
 app.use((err, req, res, next) => {

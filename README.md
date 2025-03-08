@@ -86,6 +86,47 @@ Create a `.env` file in the root directory:
 REACT_APP_API_URL=http://localhost:5000
 ```
 
+## 🚀 Deployment
+
+### Deploying to Vercel
+
+This project is configured for seamless deployment to Vercel. Follow these steps:
+
+1. Prepare for deployment
+
+```bash
+npm run deploy-prep
+```
+
+2. Deploy using Vercel CLI
+
+```bash
+vercel
+```
+
+3. For production deployment
+
+```bash
+vercel --prod
+```
+
+### Environment Variables
+
+Make sure to set these environment variables in your Vercel project settings:
+
+- `MONGODB_URI`: Your MongoDB connection string
+- `JWT_SECRET`: Secret key for JWT token generation
+- `NODE_ENV`: Set to "production"
+
+### Vercel Configuration
+
+The project includes a `vercel.json` file that configures both the frontend and backend deployment. The configuration:
+
+- Builds the Node.js server
+- Serves the static frontend files
+- Routes API requests to the server
+- Routes all other requests to the frontend
+
 ## 📱 Usage
 
 ### Adding Products
