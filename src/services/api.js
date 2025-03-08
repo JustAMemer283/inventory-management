@@ -17,12 +17,31 @@ const api = axios.create({
   retryDelay: 1000, // delay between retries in ms
 });
 
-// Add request interceptor for debugging
+// Token management
+const tokenManager = {
+  getToken: () => localStorage.getItem("auth_token"),
+  setToken: (token) => {
+    if (token) {
+      localStorage.setItem("auth_token", token);
+    }
+  },
+  removeToken: () => localStorage.removeItem("auth_token"),
+  isAuthenticated: () => !!localStorage.getItem("auth_token"),
+};
+
+// Add request interceptor for authentication and debugging
 api.interceptors.request.use(
   (config) => {
-    console.log(`Request: ${config.method.toUpperCase()} ${config.url}`);
     // Add timestamp to the request for debugging
     config.metadata = { startTime: new Date() };
+
+    // Add authentication token if available
+    const token = tokenManager.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    console.log(`Request: ${config.method.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
@@ -145,6 +164,10 @@ export const authApi = {
   login: async (credentials) => {
     try {
       const response = await api.post("/auth/login", credentials);
+      // Save token
+      if (response.data.token) {
+        tokenManager.setToken(response.data.token);
+      }
       return response.data;
     } catch (error) {
       // If we get a 504 timeout error or MongoDB connection error, try the fallback
@@ -160,6 +183,10 @@ export const authApi = {
             credentials
           );
           console.log("Fallback login successful:", fallbackResponse.data);
+          // Save token
+          if (fallbackResponse.data.token) {
+            tokenManager.setToken(fallbackResponse.data.token);
+          }
           return fallbackResponse.data;
         } catch (fallbackError) {
           console.error(
@@ -171,6 +198,10 @@ export const authApi = {
           try {
             const testResponse = await api.post("/login-test", credentials);
             console.log("Test login successful:", testResponse.data);
+            // Save token
+            if (testResponse.data.token) {
+              tokenManager.setToken(testResponse.data.token);
+            }
             return testResponse.data;
           } catch (testError) {
             console.error("All login attempts failed:", testError);
@@ -186,6 +217,10 @@ export const authApi = {
   getCurrentUser: async () => {
     try {
       const response = await api.get("/auth/me");
+      // Update token if a new one is provided
+      if (response.data.token) {
+        tokenManager.setToken(response.data.token);
+      }
       return response.data;
     } catch (error) {
       // If we get a 504 timeout error or MongoDB connection error, try the fallback
@@ -201,6 +236,10 @@ export const authApi = {
             "Fallback getCurrentUser successful:",
             fallbackResponse.data
           );
+          // Update token if a new one is provided
+          if (fallbackResponse.data.token) {
+            tokenManager.setToken(fallbackResponse.data.token);
+          }
           return fallbackResponse.data;
         } catch (fallbackError) {
           console.error("Fallback getCurrentUser failed:", fallbackError);
@@ -228,6 +267,8 @@ export const authApi = {
   logout: async () => {
     try {
       const response = await api.post("/auth/logout");
+      // Remove token
+      tokenManager.removeToken();
       return response.data;
     } catch (error) {
       // If we get a 504 timeout error or MongoDB connection error, try the fallback
@@ -240,15 +281,25 @@ export const authApi = {
           // Try the fallback endpoint
           const fallbackResponse = await api.post("/auth-fallback/logout");
           console.log("Fallback logout successful:", fallbackResponse.data);
+          // Remove token
+          tokenManager.removeToken();
           return fallbackResponse.data;
         } catch (fallbackError) {
           console.error("Fallback logout failed:", fallbackError);
 
-          // For logout, we can just return success even if it fails
+          // For logout, we can just remove the token and return success
+          tokenManager.removeToken();
           return { message: "Logged out successfully (client-side only)" };
         }
       }
+      // Even if the server logout fails, remove the token
+      tokenManager.removeToken();
       throw error;
     }
+  },
+
+  // Check if user is authenticated
+  isAuthenticated: () => {
+    return tokenManager.isAuthenticated();
   },
 };

@@ -1,66 +1,43 @@
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { auth, admin } = require("../middleware/auth");
+
+// Generate JWT token
+const generateToken = (userId, role, isFallback = false) => {
+  return jwt.sign(
+    { userId, role, isFallback },
+    process.env.JWT_SECRET || "inventory_management_secret_key_2024",
+    { expiresIn: "24h" }
+  );
+};
 
 // login route
 router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Validate input
-    if (!username || !password) {
-      return res
-        .status(400)
-        .json({ message: "Username and password are required" });
-    }
-
-    // Set a timeout for the database operation
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Database operation timed out")), 5000)
-    );
-
-    // find user with timeout
-    let user;
-    try {
-      user = await Promise.race([
-        User.findOne({ username }).lean().exec(),
-        timeoutPromise,
-      ]);
-    } catch (error) {
-      console.error("User lookup timeout:", error);
-      return res
-        .status(504)
-        .json({ message: "Login request timed out. Please try again." });
-    }
-
+    // find user
+    const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // check password with timeout
-    let isMatch;
-    try {
-      isMatch = await Promise.race([
-        bcrypt.compare(password, user.password),
-        timeoutPromise,
-      ]);
-    } catch (error) {
-      console.error("Password comparison timeout:", error);
-      return res
-        .status(504)
-        .json({ message: "Login request timed out. Please try again." });
-    }
-
+    // check password
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // set user session
+    // Generate JWT token
+    const token = generateToken(user._id, user.role);
+
+    // set user session (for backward compatibility)
     req.session.userId = user._id;
 
-    // send response
+    // send response with token
     res.json({
       user: {
         id: user._id,
@@ -68,6 +45,7 @@ router.post("/login", async (req, res) => {
         name: user.name,
         role: user.role,
       },
+      token,
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -88,12 +66,23 @@ router.post("/logout", (req, res) => {
 // get current user
 router.get("/me", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password");
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    res.json(user);
+    // User is already attached to req by auth middleware
+    const user = req.user;
+
+    // Generate a fresh token to extend the session
+    const token = generateToken(user._id, user.role, req.isFallback);
+
+    // Return user data and fresh token
+    res.json({
+      id: user._id,
+      username: user.username,
+      name: user.name,
+      role: user.role,
+      token,
+      isFallback: req.isFallback || false,
+    });
   } catch (error) {
+    console.error("Get current user error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
