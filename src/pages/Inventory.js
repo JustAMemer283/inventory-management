@@ -40,6 +40,7 @@ import {
   Menu as MenuIcon,
 } from "@mui/icons-material";
 import { productApi } from "../services/api";
+import { dismissKeyboard } from "../utils/keyboard";
 
 // inventory page component with real-time updates
 const Inventory = () => {
@@ -233,6 +234,11 @@ const Inventory = () => {
       quantity: "",
       backupQuantity: "",
     });
+
+    // Dismiss keyboard on mobile devices
+    if (product) {
+      dismissKeyboard(true);
+    }
   };
 
   const handleUpdateStock = async () => {
@@ -582,12 +588,17 @@ const Inventory = () => {
                 }}
                 value={selectedProduct}
                 onChange={(event, newValue) => handleProductSelect(newValue)}
+                onBlur={() => dismissKeyboard()}
+                blurOnSelect={true}
+                disablePortal={true}
+                openOnFocus={true}
                 renderInput={(params) => (
                   <TextField
                     {...params}
                     label="Search Product"
                     required
                     fullWidth
+                    onBlur={() => dismissKeyboard()}
                   />
                 )}
               />
@@ -641,10 +652,13 @@ const Inventory = () => {
                           backupQuantity: "", // Clear backup quantity in swap mode
                         })
                       }
+                      onBlur={() => dismissKeyboard()}
                       fullWidth
                       inputProps={{
                         min: 0,
                         max: selectedProduct.backupQuantity,
+                        inputMode: "numeric",
+                        pattern: "[0-9]*",
                       }}
                       helperText={`Maximum available: ${selectedProduct.backupQuantity}`}
                     />
@@ -660,8 +674,13 @@ const Inventory = () => {
                             quantity: e.target.value,
                           })
                         }
+                        onBlur={() => dismissKeyboard()}
                         fullWidth
-                        inputProps={{ min: 0 }}
+                        inputProps={{
+                          min: 0,
+                          inputMode: "numeric",
+                          pattern: "[0-9]*",
+                        }}
                       />
                       <TextField
                         label="Add to Backup"
@@ -673,8 +692,13 @@ const Inventory = () => {
                             backupQuantity: e.target.value,
                           })
                         }
+                        onBlur={() => dismissKeyboard()}
                         fullWidth
-                        inputProps={{ min: 0 }}
+                        inputProps={{
+                          min: 0,
+                          inputMode: "numeric",
+                          pattern: "[0-9]*",
+                        }}
                       />
                     </>
                   )}

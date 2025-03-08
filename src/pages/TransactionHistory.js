@@ -45,6 +45,7 @@ import {
   Person as PersonIcon,
   AccessTime as TimeIcon,
 } from "@mui/icons-material";
+import { dismissKeyboard } from "../utils/keyboard";
 
 // transaction history page component with filtering options
 const TransactionHistory = () => {
@@ -313,6 +314,11 @@ const TransactionHistory = () => {
       selectedBrand: newValue,
       selectedProduct: null, // Reset product when brand changes
     }));
+
+    // Dismiss keyboard on mobile devices
+    if (newValue) {
+      dismissKeyboard(true);
+    }
   };
 
   // Handle product selection
@@ -321,6 +327,11 @@ const TransactionHistory = () => {
       ...prev,
       selectedProduct: newValue,
     }));
+
+    // Dismiss keyboard on mobile devices
+    if (newValue) {
+      dismissKeyboard(true);
+    }
   };
 
   // Filter transactions based on all criteria
@@ -648,12 +659,17 @@ const TransactionHistory = () => {
                     options={getUniqueBrands()}
                     value={filters.selectedBrand}
                     onChange={handleBrandChange}
+                    onBlur={() => dismissKeyboard()}
+                    blurOnSelect={true}
+                    disablePortal={true}
+                    openOnFocus={true}
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         label="Select Brand"
                         size="small"
                         fullWidth
+                        onBlur={() => dismissKeyboard()}
                       />
                     )}
                   />
@@ -666,12 +682,17 @@ const TransactionHistory = () => {
                       options={getProductsForBrand()}
                       value={filters.selectedProduct}
                       onChange={handleProductChange}
+                      onBlur={() => dismissKeyboard()}
+                      blurOnSelect={true}
+                      disablePortal={true}
+                      openOnFocus={true}
                       renderInput={(params) => (
                         <TextField
                           {...params}
                           label="Select Product"
                           size="small"
                           fullWidth
+                          onBlur={() => dismissKeyboard()}
                         />
                       )}
                     />
