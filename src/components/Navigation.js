@@ -93,9 +93,10 @@ const Navigation = () => {
           component="div"
           sx={{
             flexGrow: 1,
-            display: { xs: "none", sm: "block" },
             fontWeight: "bold",
+            fontSize: { xs: "1.1rem", sm: "1.25rem" },
           }}
+          onClick={() => navigate("/")}
         >
           Smoky Seven
         </Typography>
@@ -104,15 +105,22 @@ const Navigation = () => {
           <>
             {isMobile ? (
               <>
-                <IconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  edge="end"
-                  onClick={handleDrawerToggle}
-                  sx={{ ml: 2 }}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    width: "100%",
+                  }}
                 >
-                  <MenuIcon />
-                </IconButton>
+                  <IconButton
+                    color="inherit"
+                    aria-label="open drawer"
+                    edge="end"
+                    onClick={handleDrawerToggle}
+                  >
+                    <MenuIcon />
+                  </IconButton>
+                </Box>
                 <Drawer
                   anchor="right"
                   open={mobileOpen}
@@ -128,6 +136,18 @@ const Navigation = () => {
                   <Box
                     sx={{ display: "flex", flexDirection: "column", gap: 1 }}
                   >
+                    <Typography
+                      variant="h6"
+                      component="div"
+                      sx={{
+                        fontWeight: "bold",
+                        mb: 2,
+                        pb: 2,
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      Smoky Seven
+                    </Typography>
                     {navItems.map((item) => (
                       <Button
                         key={item.label}
