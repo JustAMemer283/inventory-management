@@ -242,7 +242,18 @@ router.delete("/:id", auth, admin, async (req, res) => {
       type: "DELETE",
       product: product._id,
       employee: req.user._id,
-      notes: `Deleted product: ${product.brand} - ${product.name}`,
+      previousData: {
+        name: product.name,
+        brand: product.brand,
+        quantity: product.quantity,
+        backupQuantity: product.backupQuantity,
+        price: product.price,
+      },
+      notes: `Deleted product: ${product.brand} - ${product.name} (Stock: ${
+        product.quantity
+      }, Backup: ${product.backupQuantity}, Price: $${product.price.toFixed(
+        2
+      )})`,
     });
 
     await transaction.save();

@@ -173,4 +173,27 @@ router.delete("/users/:id", auth, admin, async (req, res) => {
   }
 });
 
+// verify password route
+router.post("/verify-password", auth, async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    // Get the user from the request (added by auth middleware)
+    const user = req.user;
+
+    // Check password
+    const isMatch = await user.comparePassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid password" });
+    }
+
+    // Password is correct
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Password verification error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;

@@ -26,6 +26,10 @@ import {
   SpeedDial,
   SpeedDialIcon,
   SpeedDialAction,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -38,9 +42,12 @@ import {
   ContentCopy as ContentCopyIcon,
   Close as CloseIcon,
   Menu as MenuIcon,
+  Warning as WarningIcon,
 } from "@mui/icons-material";
 import { productApi } from "../services/api";
 import { dismissKeyboard } from "../utils/keyboard";
+import { useAuth } from "../context/AuthContext";
+import { authApi } from "../services/api";
 
 // inventory page component with real-time updates
 const Inventory = () => {
@@ -70,6 +77,16 @@ const Inventory = () => {
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [availableBrands, setAvailableBrands] = useState([]);
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
+
+  // Password confirmation dialog state
+  const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Get auth context
+  const { user } = useAuth();
 
   // Get theme and check if screen is mobile
   const theme = useTheme();
@@ -200,16 +217,50 @@ const Inventory = () => {
   };
 
   // handle delete product
-  const handleDelete = async (id, productName) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      try {
-        await productApi.delete(id);
-        setSuccessMessage(`Successfully deleted ${productName}`);
-        await fetchProducts();
-        setError(null);
-      } catch (err) {
-        setError(err.message);
+  const handleDelete = async (id, product) => {
+    setProductToDelete(product);
+    setOpenPasswordDialog(true);
+    setPassword("");
+    setPasswordError("");
+  };
+
+  // handle password confirmation dialog close
+  const handlePasswordDialogClose = () => {
+    setOpenPasswordDialog(false);
+    setPassword("");
+    setPasswordError("");
+    setProductToDelete(null);
+  };
+
+  // handle password confirmation
+  const handlePasswordConfirm = async () => {
+    if (!password) {
+      setPasswordError("Password is required");
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      // Verify password
+      await authApi.verifyPassword(password);
+
+      // Password is correct, proceed with deletion
+      await productApi.delete(productToDelete._id);
+
+      setSuccessMessage(
+        `Successfully deleted ${productToDelete.brand} - ${productToDelete.name}`
+      );
+      await fetchProducts();
+      handlePasswordDialogClose();
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        setPasswordError("Incorrect password");
+      } else {
+        setPasswordError(err.message || "An error occurred");
       }
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -548,7 +599,7 @@ const Inventory = () => {
                       size="small"
                       color="error"
                       startIcon={<DeleteIcon />}
-                      onClick={() => handleDelete(product._id, product.name)}
+                      onClick={() => handleDelete(product._id, product)}
                     >
                       Delete
                     </Button>
@@ -898,6 +949,149 @@ const Inventory = () => {
               </Box>
             )}
           </DialogContent>
+        </Dialog>
+
+        {/* Password Confirmation Dialog */}
+        <Dialog
+          open={openPasswordDialog}
+          onClose={handlePasswordDialogClose}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
+            <WarningIcon color="error" sx={{ mr: 1 }} />
+            Confirm Deletion
+          </DialogTitle>
+          <DialogContent>
+            {productToDelete && (
+              <>
+                <Typography variant="subtitle1" gutterBottom>
+                  You are about to delete the following product:
+                </Typography>
+                <Box
+                  sx={{
+                    my: 2,
+                    p: 2,
+                    bgcolor: "background.paper",
+                    borderRadius: 1,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <List dense>
+                    <ListItem>
+                      <ListItemText
+                        primary="Brand"
+                        secondary={productToDelete.brand}
+                        primaryTypographyProps={{
+                          color: "text.secondary",
+                          variant: "body2",
+                        }}
+                        secondaryTypographyProps={{
+                          color: "text.primary",
+                          variant: "body1",
+                          fontWeight: "medium",
+                        }}
+                      />
+                    </ListItem>
+                    <Divider component="li" />
+                    <ListItem>
+                      <ListItemText
+                        primary="Product Name"
+                        secondary={productToDelete.name}
+                        primaryTypographyProps={{
+                          color: "text.secondary",
+                          variant: "body2",
+                        }}
+                        secondaryTypographyProps={{
+                          color: "text.primary",
+                          variant: "body1",
+                          fontWeight: "medium",
+                        }}
+                      />
+                    </ListItem>
+                    <Divider component="li" />
+                    <ListItem>
+                      <ListItemText
+                        primary="Current Stock"
+                        secondary={productToDelete.quantity}
+                        primaryTypographyProps={{
+                          color: "text.secondary",
+                          variant: "body2",
+                        }}
+                        secondaryTypographyProps={{
+                          color: "text.primary",
+                          variant: "body1",
+                          fontWeight: "medium",
+                        }}
+                      />
+                    </ListItem>
+                    <Divider component="li" />
+                    <ListItem>
+                      <ListItemText
+                        primary="Backup Stock"
+                        secondary={productToDelete.backupQuantity}
+                        primaryTypographyProps={{
+                          color: "text.secondary",
+                          variant: "body2",
+                        }}
+                        secondaryTypographyProps={{
+                          color: "text.primary",
+                          variant: "body1",
+                          fontWeight: "medium",
+                        }}
+                      />
+                    </ListItem>
+                    <Divider component="li" />
+                    <ListItem>
+                      <ListItemText
+                        primary="Price"
+                        secondary={`$${productToDelete.price.toFixed(2)}`}
+                        primaryTypographyProps={{
+                          color: "text.secondary",
+                          variant: "body2",
+                        }}
+                        secondaryTypographyProps={{
+                          color: "text.primary",
+                          variant: "body1",
+                          fontWeight: "medium",
+                        }}
+                      />
+                    </ListItem>
+                  </List>
+                </Box>
+                <Typography variant="body1" color="error" gutterBottom>
+                  This action cannot be undone. Please enter your password to
+                  confirm:
+                </Typography>
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && handlePasswordConfirm()
+                  }
+                  fullWidth
+                  margin="normal"
+                  error={!!passwordError}
+                  helperText={passwordError}
+                  autoFocus
+                />
+              </>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handlePasswordDialogClose}>Cancel</Button>
+            <Button
+              onClick={handlePasswordConfirm}
+              variant="contained"
+              color="error"
+              disabled={passwordLoading}
+            >
+              {passwordLoading ? <CircularProgress size={24} /> : "Delete"}
+            </Button>
+          </DialogActions>
         </Dialog>
 
         {/* Success Snackbar */}

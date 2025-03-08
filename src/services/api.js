@@ -302,4 +302,14 @@ export const authApi = {
   isAuthenticated: () => {
     return tokenManager.isAuthenticated();
   },
+
+  // verify password
+  verifyPassword: async (password) => {
+    try {
+      const response = await api.post("/auth/verify-password", { password });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };

@@ -219,9 +219,30 @@ const TransactionHistory = () => {
         );
       case "DELETE":
         return (
-          <Typography variant="body2">
-            Deleted product: {transaction.notes?.split(": ")[1] || productName}
-          </Typography>
+          <Box>
+            <Typography variant="body2" color="error">
+              Deleted product:{" "}
+              {transaction.previousData?.brand
+                ? `${transaction.previousData.brand} - ${transaction.previousData.name}`
+                : transaction.notes?.split(": ")[1] || productName}
+            </Typography>
+            {transaction.previousData && (
+              <Box sx={{ pl: 2, mt: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Stock: {transaction.previousData.quantity} units
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Backup: {transaction.previousData.backupQuantity} units
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Price: $
+                  {typeof transaction.previousData.price === "number"
+                    ? transaction.previousData.price.toFixed(2)
+                    : transaction.previousData.price}
+                </Typography>
+              </Box>
+            )}
+          </Box>
         );
       default:
         return null;
