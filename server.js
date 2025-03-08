@@ -126,9 +126,20 @@ if (process.env.NODE_ENV === "production") {
     }
   });
 } else {
-  // basic route for development
-  app.get("/", (req, res) => {
-    res.json({ message: "welcome to inventory management api" });
+  // In development, still serve static files and handle client-side routing
+  app.use(express.static("public"));
+
+  // basic route for API documentation in development
+  app.get("/api", (req, res) => {
+    res.json({ message: "Welcome to inventory management API" });
+  });
+
+  // For any other route that is not an API route, serve the index.html from public
+  // This enables client-side routing in development
+  app.get("*", (req, res) => {
+    if (!req.path.startsWith("/api")) {
+      res.sendFile(path.resolve(__dirname, "public", "index.html"));
+    }
   });
 }
 

@@ -31,6 +31,23 @@
       rel="stylesheet"
     />
     <title>Inventory Management</title>
+    <!-- Handle redirects from 404 page -->
+    <script>
+      (function() {
+        // Check if we have a redirect path in session storage
+        var redirectPath = sessionStorage.getItem('redirectPath');
+        if (redirectPath) {
+          // Clear the redirect path from session storage
+          sessionStorage.removeItem('redirectPath');
+          // Only redirect if we're on the root path
+          if (window.location.pathname === '/') {
+            // Use history API to replace the current URL without reloading
+            var newPath = redirectPath;
+            window.history.replaceState(null, null, newPath);
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
