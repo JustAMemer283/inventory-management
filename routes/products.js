@@ -269,7 +269,7 @@ router.delete("/:id", auth, admin, async (req, res) => {
 // record sale
 router.post("/sale", auth, async (req, res) => {
   try {
-    const { productId, quantity } = req.body;
+    const { productId, quantity, date } = req.body;
     const product = await Product.findById(productId);
 
     if (!product) {
@@ -303,7 +303,7 @@ router.post("/sale", auth, async (req, res) => {
 
     await product.save();
 
-    // Create transaction record
+    // Create transaction record with custom date if provided
     const transaction = new Transaction({
       type: "SALE",
       product: product._id,
@@ -315,6 +315,8 @@ router.post("/sale", auth, async (req, res) => {
         fromBackup > 0
           ? `Sold ${quantity} units (${fromStock} from stock, ${fromBackup} from backup)`
           : `Sold ${quantity} units from stock`,
+      // Use the provided date if available, otherwise use current date
+      date: date ? new Date(date) : undefined,
     });
 
     await transaction.save();
