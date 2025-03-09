@@ -38,7 +38,7 @@ import {
   isWithinInterval,
   parseISO,
 } from "date-fns";
-import { transactionApi } from "../services/api";
+import { transactionApi, productApi } from "../services/api";
 import { authApi } from "../services/api";
 import {
   ContentCopy as ContentCopyIcon,
@@ -580,8 +580,6 @@ const TransactionHistory = () => {
 
   // Handle download report as image
   const handleDownloadReportAsImage = async () => {
-    if (!reportRef.current) return;
-
     try {
       setImageLoading(true);
       setSnackbar({
@@ -590,15 +588,168 @@ const TransactionHistory = () => {
         severity: "info",
       });
 
-      const reportElement = reportRef.current;
+      // Create a temporary div for the styled report
+      const reportContainer = document.createElement("div");
+      reportContainer.style.padding = "20px";
+      reportContainer.style.backgroundColor = "#ffffff";
+      reportContainer.style.fontFamily = "Arial, sans-serif";
+      reportContainer.style.width = "800px";
+      reportContainer.style.color = "#000000";
 
-      // Use html2canvas to convert the report to an image
-      const canvas = await html2canvas(reportElement, {
+      // Get the date from the selected date
+      const selectedDateTime = new Date(selectedDate + "T00:00:00");
+      const reportDate = format(selectedDateTime, "do MMM yyyy, EEEE");
+
+      // Filter sales transactions for selected date
+      const filteredSales = transactions.filter((transaction) => {
+        const transactionDate = new Date(transaction.date);
+        return (
+          transaction.type === "SALE" &&
+          transactionDate.getDate() === selectedDateTime.getDate() &&
+          transactionDate.getMonth() === selectedDateTime.getMonth() &&
+          transactionDate.getFullYear() === selectedDateTime.getFullYear()
+        );
+      });
+
+      // Fetch current inventory data
+      const inventoryData = await productApi.getAll();
+
+      // Group sales by product and collect product IDs
+      const productSales = {};
+      const productMap = {};
+
+      // First map products by ID for easy lookup
+      inventoryData.forEach((product) => {
+        productMap[product._id] = {
+          name: `${product.brand} ${product.name}`,
+          stock: product.stock,
+        };
+      });
+
+      // Then process sales and match with inventory
+      filteredSales.forEach((sale) => {
+        let productName = "Unknown Product";
+        let productStock = 0;
+
+        if (sale.product) {
+          if (typeof sale.product === "object") {
+            // If product is populated
+            productName = `${sale.product.brand} ${sale.product.name}`;
+            // Try to find the current stock from inventory data
+            const inventoryProduct = inventoryData.find(
+              (p) => p._id === (sale.product._id || sale.product)
+            );
+            if (inventoryProduct) {
+              productStock = inventoryProduct.stock;
+            }
+          } else {
+            // If product is just an ID
+            const inventoryProduct = productMap[sale.product];
+            if (inventoryProduct) {
+              productName = inventoryProduct.name;
+              productStock = inventoryProduct.stock;
+            }
+          }
+        }
+
+        if (!productSales[productName]) {
+          productSales[productName] = {
+            sold: 0,
+            left: productStock,
+          };
+        }
+
+        productSales[productName].sold += sale.quantity;
+      });
+
+      // Create the HTML content for the report
+      reportContainer.innerHTML = `
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 5px;">
+          <h2 style="text-align: center; margin-bottom: 20px; color: #333; border-bottom: 2px solid #333; padding-bottom: 10px;">Inventory Report: ${reportDate}</h2>
+          
+          <table style="width: 100%; border-collapse: collapse; border: 2px solid #333; margin-bottom: 20px;">
+            <thead>
+              <tr style="background-color: #f2f2f2;">
+                <th style="padding: 12px; border: 1px solid #333; text-align: left; width: 50%;">Product Name</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 25%;">Remaining Stock</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 25%;">Sold Today</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(productSales)
+                .map(
+                  ([product, data], index) => `
+                <tr style="background-color: ${
+                  index % 2 === 0 ? "#ffffff" : "#f9f9f9"
+                };">
+                  <td style="padding: 10px; border: 1px solid #333;">${product}</td>
+                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">${
+                    data.left
+                  }</td>
+                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">${
+                    data.sold
+                  }</td>
+                </tr>
+              `
+                )
+                .join("")}
+              ${
+                Object.keys(productSales).length === 0
+                  ? `
+                <tr>
+                  <td colspan="3" style="padding: 15px; border: 1px solid #333; text-align: center; font-style: italic;">No sales recorded for this date</td>
+                </tr>
+              `
+                  : ""
+              }
+            </tbody>
+            ${
+              Object.keys(productSales).length > 0
+                ? `
+              <tfoot>
+                <tr style="background-color: #f2f2f2; font-weight: bold;">
+                  <td style="padding: 10px; border: 1px solid #333;">Total</td>
+                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">-</td>
+                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">
+                    ${Object.values(productSales).reduce(
+                      (sum, data) => sum + data.sold,
+                      0
+                    )}
+                  </td>
+                </tr>
+              </tfoot>
+            `
+                : ""
+            }
+          </table>
+          
+          <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 12px; color: #666;">
+            <div>Report ID: INV-${Math.floor(Math.random() * 10000)
+              .toString()
+              .padStart(4, "0")}</div>
+            <div>Generated on: ${format(
+              new Date(),
+              "do MMM yyyy, h:mm a"
+            )}</div>
+          </div>
+        </div>
+      `;
+
+      // Append to body temporarily (will be hidden)
+      reportContainer.style.position = "absolute";
+      reportContainer.style.left = "-9999px";
+      document.body.appendChild(reportContainer);
+
+      // Use html2canvas to convert the styled div to an image
+      const canvas = await html2canvas(reportContainer, {
         backgroundColor: "#ffffff",
         scale: 2, // Higher scale for better quality
         logging: false,
         useCORS: true,
       });
+
+      // Remove the temporary element
+      document.body.removeChild(reportContainer);
 
       // Convert canvas to data URL
       const imageUrl = canvas.toDataURL("image/png");
@@ -606,7 +757,7 @@ const TransactionHistory = () => {
       // Create a download link
       const downloadLink = document.createElement("a");
       downloadLink.href = imageUrl;
-      downloadLink.download = `Sales_Report_${selectedDate}.png`;
+      downloadLink.download = `Inventory_Report_${selectedDate}.png`;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
