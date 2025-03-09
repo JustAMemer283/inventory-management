@@ -1,15 +1,36 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { CircularProgress, Box } from "@mui/material";
 
 // protected route component
 const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, checkAuth } = useAuth();
   const location = useLocation();
 
-  // show loading state
+  // Re-check auth on direct route access
+  useEffect(() => {
+    if (!user && !loading) {
+      // If no user and not loading, try to check auth again
+      // This helps with direct URL access
+      checkAuth();
+    }
+  }, [user, loading, checkAuth]);
+
+  // show loading state with spinner
   if (loading) {
-    return null;
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "50vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
   // redirect to login if not authenticated

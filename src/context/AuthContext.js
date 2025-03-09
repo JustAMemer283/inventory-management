@@ -22,7 +22,9 @@ export const AuthProvider = ({ children }) => {
       const userData = await authApi.getCurrentUser();
       setUser(userData);
     } catch (err) {
-      setError(err.message);
+      // Clear user data on auth error
+      setUser(null);
+      console.error("Auth check error:", err);
     } finally {
       setLoading(false);
     }
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authApi.login(credentials);
       setUser(response.user);
+      setError(null);
       return response;
     } catch (err) {
       setError(err.message);
@@ -58,6 +61,7 @@ export const AuthProvider = ({ children }) => {
     error,
     login,
     logout,
+    checkAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

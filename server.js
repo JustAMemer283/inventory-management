@@ -124,15 +124,52 @@ if (process.env.NODE_ENV === "production") {
   // Set static folder
   app.use(express.static("build"));
 
+  // Define specific routes that should be handled by the React app
+  const clientRoutes = [
+    "/",
+    "/login",
+    "/sales",
+    "/inventory",
+    "/transactions",
+    "/home",
+  ];
+
+  // Handle specific client routes
+  clientRoutes.forEach((route) => {
+    app.get(route, (req, res) => {
+      res.sendFile(path.resolve(__dirname, "build", "index.html"));
+    });
+  });
+
   // For any route that is not an API route, serve the index.html
   app.get("*", (req, res) => {
     if (!req.path.startsWith("/api")) {
       res.sendFile(path.resolve(__dirname, "build", "index.html"));
+    } else {
+      // If it's an API route that wasn't handled, return 404
+      res.status(404).json({ message: "API endpoint not found" });
     }
   });
 } else {
   // In development, still serve static files and handle client-side routing
   app.use(express.static("public"));
+
+  // Define specific routes that should be handled by the React app
+  const clientRoutes = [
+    "/",
+    "/login",
+    "/sales",
+    "/inventory",
+    "/transactions",
+    "/home",
+  ];
+
+  // Handle specific client routes
+  clientRoutes.forEach((route) => {
+    app.get(route, (req, res) => {
+      res.sendFile(path.resolve(__dirname, "public", "index.html"));
+    });
+  });
 
   // basic route for API documentation in development
   app.get("/api", (req, res) => {
@@ -144,6 +181,9 @@ if (process.env.NODE_ENV === "production") {
   app.get("*", (req, res) => {
     if (!req.path.startsWith("/api")) {
       res.sendFile(path.resolve(__dirname, "public", "index.html"));
+    } else {
+      // If it's an API route that wasn't handled, return 404
+      res.status(404).json({ message: "API endpoint not found" });
     }
   });
 }

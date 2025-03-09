@@ -9,7 +9,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import useAuthRedirect from "../hooks/useAuthRedirect";
 
@@ -25,11 +25,12 @@ const Login = () => {
 
   // get navigate function from router and auth context
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   // Redirect if already authenticated
   useAuthRedirect({
-    redirectTo: "/sales",
+    redirectTo: location.state?.from?.pathname || "/sales",
     redirectIfAuthenticated: true,
   });
 
@@ -56,8 +57,9 @@ const Login = () => {
       // attempt login using auth context
       const response = await login(formData);
 
-      // always redirect to sales page
-      navigate("/sales");
+      // redirect to the page they were trying to access or sales page
+      const from = location.state?.from?.pathname || "/sales";
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {
