@@ -691,7 +691,7 @@ const TransactionHistory = () => {
             <thead>
               <tr style="background-color: #f2f2f2;">
                 <th style="padding: 12px; border: 1px solid #333; text-align: left; width: 50%;">Brand Name</th>
-                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 25%;">Left (Stock + Backup)</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 25%;">Left</th>
                 <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 25%;">Sold Today</th>
               </tr>
             </thead>
