@@ -625,12 +625,13 @@ const TransactionHistory = () => {
         if (!brandInventory[brand]) {
           brandInventory[brand] = {
             totalStock: 0,
-            productCount: 0,
           };
         }
 
-        brandInventory[brand].totalStock += product.stock;
-        brandInventory[brand].productCount += 1;
+        // Add both instock and backup stock to the total
+        const instockQuantity = product.stock || 0;
+        const backupQuantity = product.backupStock || 0;
+        brandInventory[brand].totalStock += instockQuantity + backupQuantity;
       });
 
       // Initialize brandSales with all brands from inventory, with 0 sales
@@ -638,7 +639,6 @@ const TransactionHistory = () => {
         brandSales[brand] = {
           sold: 0,
           left: brandInventory[brand].totalStock,
-          productCount: brandInventory[brand].productCount,
         };
       });
 
@@ -662,9 +662,6 @@ const TransactionHistory = () => {
           brandSales[brand] = {
             sold: 0,
             left: brandInventory[brand] ? brandInventory[brand].totalStock : 0,
-            productCount: brandInventory[brand]
-              ? brandInventory[brand].productCount
-              : 0,
           };
         }
 
@@ -679,10 +676,9 @@ const TransactionHistory = () => {
           <table style="width: 100%; border-collapse: collapse; border: 2px solid #333; margin-bottom: 20px;">
             <thead>
               <tr style="background-color: #f2f2f2;">
-                <th style="padding: 12px; border: 1px solid #333; text-align: left; width: 40%;">Brand Name</th>
-                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 20%;">Products</th>
-                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 20%;">Total Stock</th>
-                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 20%;">Sold Today</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: left; width: 50%;">Brand Name</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 25%;">Left (Stock + Backup)</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 25%;">Sold Today</th>
               </tr>
             </thead>
             <tbody>
@@ -697,9 +693,6 @@ const TransactionHistory = () => {
                     data.sold > 0 ? "bold" : "normal"
                   };">${brand}</td>
                   <td style="padding: 10px; border: 1px solid #333; text-align: center;">${
-                    data.productCount
-                  }</td>
-                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">${
                     data.left
                   }</td>
                   <td style="padding: 10px; border: 1px solid #333; text-align: center;">${
@@ -713,7 +706,7 @@ const TransactionHistory = () => {
                 Object.keys(brandSales).length === 0
                   ? `
                 <tr>
-                  <td colspan="4" style="padding: 15px; border: 1px solid #333; text-align: center; font-style: italic;">No inventory data available</td>
+                  <td colspan="3" style="padding: 15px; border: 1px solid #333; text-align: center; font-style: italic;">No inventory data available</td>
                 </tr>
               `
                   : ""
@@ -725,12 +718,6 @@ const TransactionHistory = () => {
               <tfoot>
                 <tr style="background-color: #f2f2f2; font-weight: bold;">
                   <td style="padding: 10px; border: 1px solid #333;">Total</td>
-                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">
-                    ${Object.values(brandSales).reduce(
-                      (sum, data) => sum + data.productCount,
-                      0
-                    )}
-                  </td>
                   <td style="padding: 10px; border: 1px solid #333; text-align: center;">
                     ${Object.values(brandSales).reduce(
                       (sum, data) => sum + data.left,
