@@ -386,50 +386,89 @@ const TransactionHistory = () => {
     }
   };
 
-  // Filter transactions based on all criteria
+  // Handle filter change with validation
+  const handleFilterChange = (field) => (event) => {
+    const value = event.target.value;
+
+    // Validate date fields
+    if ((field === "startDate" || field === "endDate") && value) {
+      // Check if the date is valid
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(value) || isNaN(new Date(value).getTime())) {
+        // If invalid date, don't update the filter
+        return;
+      }
+    }
+
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Filter transactions with error handling
   const filterTransactions = (transactions) => {
-    return transactions.filter((transaction) => {
-      const transactionDate = new Date(transaction.date);
-      const startDateTime = new Date(
-        filters.startDate + "T" + filters.startTime
-      );
-      const endDateTime = new Date(filters.endDate + "T" + filters.endTime);
+    try {
+      // Validate date strings before creating Date objects
+      const startDateStr = filters.startDate + "T" + filters.startTime;
+      const endDateStr = filters.endDate + "T" + filters.endTime;
 
-      // Check if within date/time range
-      const isInDateRange = isWithinInterval(transactionDate, {
-        start: startDateTime,
-        end: endDateTime,
+      const startDateTime = new Date(startDateStr);
+      const endDateTime = new Date(endDateStr);
+
+      // Check if dates are valid
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        // Return all transactions if dates are invalid
+        console.error("Invalid date range:", startDateStr, endDateStr);
+        return transactions;
+      }
+
+      return transactions.filter((transaction) => {
+        const transactionDate = new Date(transaction.date);
+
+        // Check if transaction date is valid
+        if (isNaN(transactionDate.getTime())) {
+          return false;
+        }
+
+        // Check if within date/time range
+        const isInDateRange = isWithinInterval(transactionDate, {
+          start: startDateTime,
+          end: endDateTime,
+        });
+
+        // Apply other filters
+        const isTypeMatch =
+          filters.types.length === 0 ||
+          filters.types.includes(transaction.type);
+
+        const isEmployeeMatch =
+          filters.employees.length === 0 ||
+          (transaction.employee &&
+            filters.employees.includes(transaction.employee._id));
+
+        const isProductMatch =
+          !filters.selectedProduct ||
+          (transaction.product &&
+            transaction.product._id === filters.selectedProduct._id);
+
+        const isBrandMatch =
+          !filters.selectedBrand ||
+          (transaction.product &&
+            transaction.product.brand === filters.selectedBrand);
+
+        return (
+          isInDateRange &&
+          isTypeMatch &&
+          isEmployeeMatch &&
+          isProductMatch &&
+          isBrandMatch
+        );
       });
-
-      // Check if type matches
-      const isTypeMatch =
-        filters.types.length === 0 || filters.types.includes(transaction.type);
-
-      // Check if employee matches
-      const isEmployeeMatch =
-        filters.employees.length === 0 ||
-        filters.employees.includes(transaction.employee?.name);
-
-      // Check if brand matches
-      const isBrandMatch =
-        !filters.selectedBrand ||
-        (transaction.product &&
-          transaction.product.brand === filters.selectedBrand);
-
-      // Check if product matches
-      const isProductMatch =
-        !filters.selectedProduct ||
-        (transaction.product &&
-          transaction.product.name === filters.selectedProduct);
-
-      return (
-        isInDateRange &&
-        isTypeMatch &&
-        isEmployeeMatch &&
-        isBrandMatch &&
-        isProductMatch
-      );
-    });
+    } catch (error) {
+      console.error("Error filtering transactions:", error);
+      return transactions; // Return all transactions in case of error
+    }
   };
 
   const generateSalesReport = () => {
@@ -507,14 +546,6 @@ const TransactionHistory = () => {
     if (!value || value.match(/^\d{4}-\d{2}-\d{2}$/)) {
       setSelectedDate(value);
     }
-  };
-
-  // Handle filter changes
-  const handleFilterChange = (field) => (event) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
   };
 
   // Handle type filter toggle
@@ -919,7 +950,13 @@ const TransactionHistory = () => {
                     value={filters.startDate}
                     onChange={handleFilterChange("startDate")}
                     InputLabelProps={{ shrink: true }}
+                    inputProps={{
+                      min: "2000-01-01",
+                      max: "2099-12-31",
+                      pattern: "\\d{4}-\\d{2}-\\d{2}",
+                    }}
                     fullWidth
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
@@ -939,7 +976,13 @@ const TransactionHistory = () => {
                     value={filters.endDate}
                     onChange={handleFilterChange("endDate")}
                     InputLabelProps={{ shrink: true }}
+                    inputProps={{
+                      min: "2000-01-01",
+                      max: "2099-12-31",
+                      pattern: "\\d{4}-\\d{2}-\\d{2}",
+                    }}
                     fullWidth
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
