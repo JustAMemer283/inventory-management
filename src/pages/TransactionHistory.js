@@ -19,6 +19,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   TextField,
   Collapse,
   Autocomplete,
@@ -37,6 +38,7 @@ import {
   parseISO,
 } from "date-fns";
 import { transactionApi } from "../services/api";
+import { authApi } from "../services/api";
 import {
   ContentCopy as ContentCopyIcon,
   Close as CloseIcon,
@@ -44,8 +46,11 @@ import {
   FilterList as FilterListIcon,
   Person as PersonIcon,
   AccessTime as TimeIcon,
+  DeleteForever as DeleteForeverIcon,
+  Warning as WarningIcon,
 } from "@mui/icons-material";
 import { dismissKeyboard } from "../utils/keyboard";
+import { useAuth } from "../context/AuthContext";
 
 // transaction history page component with filtering options
 const TransactionHistory = () => {
@@ -70,12 +75,28 @@ const TransactionHistory = () => {
     selectedProduct: null, // Selected product (single)
   });
 
+  // Delete older transactions state
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Get auth context
+  const { user } = useAuth();
+
   // Transaction types array
   const transactionTypes = ["SALE", "NEW", "ADD", "EDIT", "DELETE", "TRANSFER"];
 
   // Get theme and check if screen is mobile
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Add snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   // fetch transactions function
   const fetchTransactions = async () => {
@@ -496,6 +517,57 @@ const TransactionHistory = () => {
     }));
   };
 
+  // handle delete older transactions
+  const handleDeleteOlderTransactions = async () => {
+    if (!password) {
+      setPasswordError("Password is required");
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      // Verify password
+      await authApi.verifyPassword(password);
+
+      // Password is correct, proceed with deletion
+      const result = await transactionApi.deleteOlderThan(7);
+
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: result.message || "Transactions deleted successfully",
+        severity: "success",
+      });
+
+      await fetchTransactions();
+      handleCloseDeleteDialog();
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        setPasswordError("Incorrect password");
+      } else {
+        setPasswordError(err.message || "An error occurred");
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // handle delete dialog close
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setPassword("");
+    setPasswordError("");
+  };
+
+  // handle snackbar close
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -516,22 +588,24 @@ const TransactionHistory = () => {
         <Box
           sx={{
             display: "flex",
-            flexDirection: isMobile ? "column" : "row",
             justifyContent: "space-between",
-            alignItems: isMobile ? "flex-start" : "center",
-            gap: isMobile ? 2 : 0,
+            alignItems: "center",
             mb: 3,
+            flexDirection: isMobile ? "column" : "row",
+            gap: 2,
           }}
         >
-          <Typography variant="h4" component="h1" gutterBottom={!isMobile}>
+          <Typography variant="h4" component="h1">
             Transaction History
           </Typography>
+
           <Box
             sx={{
               display: "flex",
-              flexDirection: isMobile ? "column" : "row",
-              gap: 1,
+              gap: 2,
+              flexWrap: "wrap",
               width: isMobile ? "100%" : "auto",
+              justifyContent: isMobile ? "space-between" : "flex-end",
             }}
           >
             <Button
@@ -539,18 +613,43 @@ const TransactionHistory = () => {
               color="primary"
               startIcon={<FilterListIcon />}
               onClick={() => setShowFilters(!showFilters)}
-              sx={{ mr: isMobile ? 0 : 2, width: isMobile ? "100%" : "auto" }}
+              sx={{
+                flex: isMobile ? "1 1 100%" : "0 0 auto",
+                mb: isMobile ? 1 : 0,
+                order: isMobile ? 0 : 1,
+              }}
             >
               Filters
             </Button>
+
             <Button
               variant="contained"
               color="primary"
-              startIcon={<ContentCopyIcon />}
               onClick={() => setOpenReport(true)}
-              sx={{ width: isMobile ? "100%" : "auto" }}
+              startIcon={<ContentCopyIcon />}
+              size={isMobile ? "medium" : "medium"}
+              sx={{
+                flex: isMobile ? "1 1 48%" : "0 0 auto",
+                minWidth: isMobile ? "0" : "auto",
+                order: isMobile ? 1 : 2,
+              }}
             >
-              Generate Today's Report
+              Generate Report
+            </Button>
+
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => setOpenDeleteDialog(true)}
+              startIcon={<DeleteForeverIcon />}
+              size={isMobile ? "medium" : "medium"}
+              sx={{
+                flex: isMobile ? "1 1 48%" : "0 0 auto",
+                minWidth: isMobile ? "0" : "auto",
+                order: isMobile ? 2 : 3,
+              }}
+            >
+              Delete Old Records
             </Button>
           </Box>
         </Box>
@@ -733,18 +832,17 @@ const TransactionHistory = () => {
 
         {/* Success Snackbar */}
         <Snackbar
-          open={!!successMessage}
-          autoHideDuration={3000}
-          onClose={() => setSuccessMessage("")}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
           <Alert
-            onClose={() => setSuccessMessage("")}
-            severity="success"
-            variant="filled"
+            onClose={handleSnackbarClose}
+            severity={snackbar.severity}
             sx={{ width: "100%" }}
           >
-            {successMessage}
+            {snackbar.message}
           </Alert>
         </Snackbar>
 
@@ -941,6 +1039,86 @@ const TransactionHistory = () => {
               {generateSalesReport()}
             </Box>
           </DialogContent>
+        </Dialog>
+
+        {/* Delete Older Transactions Dialog */}
+        <Dialog
+          open={openDeleteDialog}
+          onClose={handleCloseDeleteDialog}
+          maxWidth="sm"
+          fullWidth
+          fullScreen={isMobile}
+        >
+          <DialogTitle
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              bgcolor: "error.light",
+              color: "error.contrastText",
+            }}
+          >
+            <WarningIcon sx={{ mr: 1 }} />
+            Delete Old Transactions
+            <IconButton
+              aria-label="close"
+              onClick={handleCloseDeleteDialog}
+              sx={{
+                position: "absolute",
+                right: 8,
+                top: 8,
+                color: (theme) => theme.palette.grey[500],
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ pt: isMobile ? 2 : 1 }}>
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 1 }}>
+              You are about to delete all transactions older than 7 days.
+            </Typography>
+            <Typography
+              variant="body2"
+              color="error"
+              gutterBottom
+              sx={{ mb: 2 }}
+            >
+              This action cannot be undone. Please enter your password to
+              confirm:
+            </Typography>
+            <TextField
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) =>
+                e.key === "Enter" && handleDeleteOlderTransactions()
+              }
+              fullWidth
+              margin="normal"
+              error={!!passwordError}
+              helperText={passwordError}
+              autoFocus
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button
+              onClick={handleCloseDeleteDialog}
+              variant={isMobile ? "outlined" : "text"}
+              fullWidth={isMobile}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteOlderTransactions}
+              variant="contained"
+              color="error"
+              disabled={deleteLoading}
+              fullWidth={isMobile}
+              sx={{ ml: isMobile ? 0 : 1, mt: isMobile ? 1 : 0 }}
+            >
+              {deleteLoading ? <CircularProgress size={24} /> : "Delete"}
+            </Button>
+          </DialogActions>
         </Dialog>
       </Box>
     </Container>

@@ -178,10 +178,18 @@ router.post("/verify-password", auth, async (req, res) => {
   try {
     const { password } = req.body;
 
-    // Get the user from the request (added by auth middleware)
-    const user = req.user;
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
 
-    // Check password
+    // Get user from database (without password)
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Compare passwords using the model method
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
@@ -189,9 +197,9 @@ router.post("/verify-password", auth, async (req, res) => {
     }
 
     // Password is correct
-    res.json({ success: true });
+    return res.status(200).json({ message: "Password verified" });
   } catch (error) {
-    console.error("Password verification error:", error);
+    console.error("Error verifying password:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

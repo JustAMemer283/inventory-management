@@ -95,4 +95,32 @@ router.get("/:id", auth, async (req, res) => {
   }
 });
 
+// delete transactions older than specified days
+router.delete("/older-than/:days", auth, async (req, res) => {
+  try {
+    const days = parseInt(req.params.days);
+
+    if (isNaN(days) || days < 1) {
+      return res.status(400).json({ message: "Invalid number of days" });
+    }
+
+    // Calculate the date threshold (current date minus specified days)
+    const dateThreshold = new Date();
+    dateThreshold.setDate(dateThreshold.getDate() - days);
+
+    // Delete transactions older than the threshold
+    const result = await Transaction.deleteMany({
+      date: { $lt: dateThreshold },
+    });
+
+    res.json({
+      message: `Successfully deleted ${result.deletedCount} transactions older than ${days} days`,
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error("Error deleting transactions:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;

@@ -156,6 +156,12 @@ export const transactionApi = {
     });
     return response.data;
   },
+
+  // delete transactions older than specified days
+  deleteOlderThan: async (days) => {
+    const response = await api.delete(`/transactions/older-than/${days}`);
+    return response.data;
+  },
 };
 
 // auth api service
@@ -305,11 +311,7 @@ export const authApi = {
 
   // verify password
   verifyPassword: async (password) => {
-    try {
-      const response = await api.post("/auth/verify-password", { password });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.post("/auth/verify-password", { password });
+    return response.data;
   },
 };
