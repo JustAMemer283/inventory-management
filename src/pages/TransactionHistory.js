@@ -620,7 +620,7 @@ const TransactionHistory = () => {
 
       // First, calculate total stock for each brand from inventory
       inventoryData.forEach((product) => {
-        const brand = product.brand;
+        const brand = product.brand || "Unbranded";
 
         if (!brandInventory[brand]) {
           brandInventory[brand] = {
@@ -631,6 +631,15 @@ const TransactionHistory = () => {
 
         brandInventory[brand].totalStock += product.stock;
         brandInventory[brand].productCount += 1;
+      });
+
+      // Initialize brandSales with all brands from inventory, with 0 sales
+      Object.keys(brandInventory).forEach((brand) => {
+        brandSales[brand] = {
+          sold: 0,
+          left: brandInventory[brand].totalStock,
+          productCount: brandInventory[brand].productCount,
+        };
       });
 
       // Then process sales by brand
@@ -645,7 +654,7 @@ const TransactionHistory = () => {
           // If product is just an ID, try to find it in inventory
           const product = inventoryData.find((p) => p._id === sale.product);
           if (product) {
-            brand = product.brand;
+            brand = product.brand || "Unbranded";
           }
         }
 
@@ -660,17 +669,6 @@ const TransactionHistory = () => {
         }
 
         brandSales[brand].sold += sale.quantity;
-      });
-
-      // Add any brands from inventory that had no sales
-      Object.keys(brandInventory).forEach((brand) => {
-        if (!brandSales[brand]) {
-          brandSales[brand] = {
-            sold: 0,
-            left: brandInventory[brand].totalStock,
-            productCount: brandInventory[brand].productCount,
-          };
-        }
       });
 
       // Create the HTML content for the report
@@ -689,6 +687,7 @@ const TransactionHistory = () => {
             </thead>
             <tbody>
               ${Object.entries(brandSales)
+                .sort(([brandA], [brandB]) => brandA.localeCompare(brandB))
                 .map(
                   ([brand, data], index) => `
                 <tr style="background-color: ${
@@ -714,7 +713,7 @@ const TransactionHistory = () => {
                 Object.keys(brandSales).length === 0
                   ? `
                 <tr>
-                  <td colspan="4" style="padding: 15px; border: 1px solid #333; text-align: center; font-style: italic;">No inventory data available for this date</td>
+                  <td colspan="4" style="padding: 15px; border: 1px solid #333; text-align: center; font-style: italic;">No inventory data available</td>
                 </tr>
               `
                   : ""
@@ -750,6 +749,17 @@ const TransactionHistory = () => {
                 : ""
             }
           </table>
+          
+          <div style="margin-top: 10px; text-align: center; font-size: 14px; color: #666; font-style: italic;">
+            ${
+              filteredSales.length === 0
+                ? "No sales recorded for this date"
+                : `Total ${Object.values(brandSales).reduce(
+                    (sum, data) => sum + data.sold,
+                    0
+                  )} items sold on this date`
+            }
+          </div>
           
           <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 12px; color: #666;">
             <div>Report ID: INV-${Math.floor(Math.random() * 10000)
