@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Container,
   Typography,
@@ -29,6 +29,7 @@ import {
   CardContent,
   Grid,
   Divider,
+  Tooltip,
 } from "@mui/material";
 import {
   format,
@@ -48,9 +49,12 @@ import {
   AccessTime as TimeIcon,
   DeleteForever as DeleteForeverIcon,
   Warning as WarningIcon,
+  Download as DownloadIcon,
+  Image as ImageIcon,
 } from "@mui/icons-material";
 import { dismissKeyboard } from "../utils/keyboard";
 import { useAuth } from "../context/AuthContext";
+import html2canvas from "html2canvas";
 
 // transaction history page component with filtering options
 const TransactionHistory = () => {
@@ -97,6 +101,12 @@ const TransactionHistory = () => {
     message: "",
     severity: "success",
   });
+
+  // Add ref for report content
+  const reportRef = useRef(null);
+
+  // Add loading state for image download
+  const [imageLoading, setImageLoading] = useState(false);
 
   // fetch transactions function
   const fetchTransactions = async () => {
@@ -457,21 +467,46 @@ const TransactionHistory = () => {
 
       // Generate report with just the date and sales
       const reportDate = selectedDateTime;
-      let report = `Sale (${format(reportDate, "do MMM")}, ${format(
+      let report = `Sales Report: ${format(
         reportDate,
-        "EEEE"
-      )}):\n`;
+        "do MMM yyyy"
+      )}, ${format(reportDate, "EEEE")}\n`;
+      report += `Generated on: ${format(new Date(), "do MMM yyyy, h:mm a")}\n`;
+      report += `----------------------------------------\n`;
 
       if (filteredSales.length === 0) {
         report += "No sales recorded for this date.\n";
       } else {
+        // Add header
+        report += `Time     | Product                      | Qty\n`;
+        report += `----------------------------------------\n`;
+
+        // Add sales data
         filteredSales.forEach((sale) => {
           const time = format(new Date(sale.date), "hh:mm a");
           const productInfo = sale.product
             ? `${sale.product.brand} ${sale.product.name}`
             : "Unknown Product";
-          report += `${time} - ${productInfo} - ${sale.quantity}\n`;
+
+          // Format with fixed width columns
+          const timeCol = time.padEnd(9);
+          const productCol =
+            productInfo.length > 28
+              ? productInfo.substring(0, 25) + "..."
+              : productInfo.padEnd(28);
+          const qtyCol = String(sale.quantity);
+
+          report += `${timeCol}| ${productCol}| ${qtyCol}\n`;
         });
+
+        // Add summary
+        report += `----------------------------------------\n`;
+        const totalItems = filteredSales.reduce(
+          (sum, sale) => sum + sale.quantity,
+          0
+        );
+        report += `Total Items Sold: ${totalItems}\n`;
+        report += `Total Transactions: ${filteredSales.length}\n`;
       }
 
       return report;
@@ -566,6 +601,56 @@ const TransactionHistory = () => {
       return;
     }
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Handle download report as image
+  const handleDownloadReportAsImage = async () => {
+    if (!reportRef.current) return;
+
+    try {
+      setImageLoading(true);
+      setSnackbar({
+        open: true,
+        message: "Generating image...",
+        severity: "info",
+      });
+
+      const reportElement = reportRef.current;
+
+      // Use html2canvas to convert the report to an image
+      const canvas = await html2canvas(reportElement, {
+        backgroundColor: "#ffffff",
+        scale: 2, // Higher scale for better quality
+        logging: false,
+        useCORS: true,
+      });
+
+      // Convert canvas to data URL
+      const imageUrl = canvas.toDataURL("image/png");
+
+      // Create a download link
+      const downloadLink = document.createElement("a");
+      downloadLink.href = imageUrl;
+      downloadLink.download = `Sales_Report_${selectedDate}.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      setSnackbar({
+        open: true,
+        message: "Report downloaded as image!",
+        severity: "success",
+      });
+    } catch (err) {
+      console.error("Failed to download as image:", err);
+      setSnackbar({
+        open: true,
+        message: "Failed to download report as image",
+        severity: "error",
+      });
+    } finally {
+      setImageLoading(false);
+    }
   };
 
   if (loading) {
@@ -974,18 +1059,13 @@ const TransactionHistory = () => {
           </Box>
         )}
 
-        {/* Sales Report Dialog */}
+        {/* Report Dialog */}
         <Dialog
           open={openReport}
           onClose={() => setOpenReport(false)}
-          maxWidth="md"
+          maxWidth="sm"
           fullWidth
-          PaperProps={{
-            sx: {
-              width: isMobile ? "95%" : undefined,
-              margin: isMobile ? "10px" : undefined,
-            },
-          }}
+          fullScreen={isMobile}
         >
           <DialogTitle>
             <Box
@@ -995,15 +1075,32 @@ const TransactionHistory = () => {
                 alignItems: "center",
               }}
             >
-              Sales Report
+              <Typography variant="h6" component="div">
+                Sales Report
+              </Typography>
               <Box>
-                <IconButton
-                  onClick={handleCopyReport}
-                  color="primary"
-                  title="Copy to clipboard"
-                >
-                  <ContentCopyIcon />
-                </IconButton>
+                <Tooltip title="Copy to clipboard">
+                  <IconButton
+                    onClick={handleCopyReport}
+                    color="primary"
+                    disabled={imageLoading}
+                  >
+                    <ContentCopyIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Download as image">
+                  <IconButton
+                    onClick={handleDownloadReportAsImage}
+                    color="primary"
+                    disabled={imageLoading}
+                  >
+                    {imageLoading ? (
+                      <CircularProgress size={24} />
+                    ) : (
+                      <ImageIcon />
+                    )}
+                  </IconButton>
+                </Tooltip>
                 <IconButton
                   onClick={() => setOpenReport(false)}
                   color="inherit"
@@ -1029,14 +1126,61 @@ const TransactionHistory = () => {
               />
             </Box>
             <Box
+              ref={reportRef}
               sx={{
                 whiteSpace: "pre-wrap",
                 fontFamily: "monospace",
                 fontSize: isMobile ? "0.75rem" : "0.875rem",
                 overflowX: "auto",
+                padding: 2,
+                backgroundColor: "#ffffff",
+                color: "#000000",
+                borderRadius: 1,
+                mb: 2,
+                minHeight: "200px",
+                border: "1px solid #e0e0e0",
               }}
             >
               {generateSalesReport()}
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                justifyContent: isMobile ? "center" : "space-between",
+                gap: isMobile ? 2 : 0,
+                mt: 2,
+              }}
+            >
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<ContentCopyIcon />}
+                onClick={handleCopyReport}
+                size={isMobile ? "medium" : "medium"}
+                fullWidth={isMobile}
+              >
+                Copy to Clipboard
+              </Button>
+
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={
+                  imageLoading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    <ImageIcon />
+                  )
+                }
+                onClick={handleDownloadReportAsImage}
+                disabled={imageLoading}
+                size={isMobile ? "medium" : "medium"}
+                fullWidth={isMobile}
+              >
+                Download as Image
+              </Button>
             </Box>
           </DialogContent>
         </Dialog>
