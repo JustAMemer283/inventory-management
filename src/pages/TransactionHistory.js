@@ -467,46 +467,21 @@ const TransactionHistory = () => {
 
       // Generate report with just the date and sales
       const reportDate = selectedDateTime;
-      let report = `Sales Report: ${format(
+      let report = `Sale (${format(reportDate, "do MMM")}, ${format(
         reportDate,
-        "do MMM yyyy"
-      )}, ${format(reportDate, "EEEE")}\n`;
-      report += `Generated on: ${format(new Date(), "do MMM yyyy, h:mm a")}\n`;
-      report += `----------------------------------------\n`;
+        "EEEE"
+      )}):\n`;
 
       if (filteredSales.length === 0) {
         report += "No sales recorded for this date.\n";
       } else {
-        // Add header
-        report += `Time     | Product                      | Qty\n`;
-        report += `----------------------------------------\n`;
-
-        // Add sales data
         filteredSales.forEach((sale) => {
           const time = format(new Date(sale.date), "hh:mm a");
           const productInfo = sale.product
             ? `${sale.product.brand} ${sale.product.name}`
             : "Unknown Product";
-
-          // Format with fixed width columns
-          const timeCol = time.padEnd(9);
-          const productCol =
-            productInfo.length > 28
-              ? productInfo.substring(0, 25) + "..."
-              : productInfo.padEnd(28);
-          const qtyCol = String(sale.quantity);
-
-          report += `${timeCol}| ${productCol}| ${qtyCol}\n`;
+          report += `${time} - ${productInfo} - ${sale.quantity}\n`;
         });
-
-        // Add summary
-        report += `----------------------------------------\n`;
-        const totalItems = filteredSales.reduce(
-          (sum, sale) => sum + sale.quantity,
-          0
-        );
-        report += `Total Items Sold: ${totalItems}\n`;
-        report += `Total Transactions: ${filteredSales.length}\n`;
       }
 
       return report;
