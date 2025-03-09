@@ -614,52 +614,63 @@ const TransactionHistory = () => {
       // Fetch current inventory data
       const inventoryData = await productApi.getAll();
 
-      // Group sales by product and collect product IDs
-      const productSales = {};
-      const productMap = {};
+      // Group by brand instead of individual products
+      const brandSales = {};
+      const brandInventory = {};
 
-      // First map products by ID for easy lookup
+      // First, calculate total stock for each brand from inventory
       inventoryData.forEach((product) => {
-        productMap[product._id] = {
-          name: `${product.brand} ${product.name}`,
-          stock: product.stock,
-        };
-      });
+        const brand = product.brand;
 
-      // Then process sales and match with inventory
-      filteredSales.forEach((sale) => {
-        let productName = "Unknown Product";
-        let productStock = 0;
-
-        if (sale.product) {
-          if (typeof sale.product === "object") {
-            // If product is populated
-            productName = `${sale.product.brand} ${sale.product.name}`;
-            // Try to find the current stock from inventory data
-            const inventoryProduct = inventoryData.find(
-              (p) => p._id === (sale.product._id || sale.product)
-            );
-            if (inventoryProduct) {
-              productStock = inventoryProduct.stock;
-            }
-          } else {
-            // If product is just an ID
-            const inventoryProduct = productMap[sale.product];
-            if (inventoryProduct) {
-              productName = inventoryProduct.name;
-              productStock = inventoryProduct.stock;
-            }
-          }
-        }
-
-        if (!productSales[productName]) {
-          productSales[productName] = {
-            sold: 0,
-            left: productStock,
+        if (!brandInventory[brand]) {
+          brandInventory[brand] = {
+            totalStock: 0,
+            productCount: 0,
           };
         }
 
-        productSales[productName].sold += sale.quantity;
+        brandInventory[brand].totalStock += product.stock;
+        brandInventory[brand].productCount += 1;
+      });
+
+      // Then process sales by brand
+      filteredSales.forEach((sale) => {
+        if (!sale.product) return;
+
+        let brand = "Unknown Brand";
+
+        if (typeof sale.product === "object" && sale.product.brand) {
+          brand = sale.product.brand;
+        } else {
+          // If product is just an ID, try to find it in inventory
+          const product = inventoryData.find((p) => p._id === sale.product);
+          if (product) {
+            brand = product.brand;
+          }
+        }
+
+        if (!brandSales[brand]) {
+          brandSales[brand] = {
+            sold: 0,
+            left: brandInventory[brand] ? brandInventory[brand].totalStock : 0,
+            productCount: brandInventory[brand]
+              ? brandInventory[brand].productCount
+              : 0,
+          };
+        }
+
+        brandSales[brand].sold += sale.quantity;
+      });
+
+      // Add any brands from inventory that had no sales
+      Object.keys(brandInventory).forEach((brand) => {
+        if (!brandSales[brand]) {
+          brandSales[brand] = {
+            sold: 0,
+            left: brandInventory[brand].totalStock,
+            productCount: brandInventory[brand].productCount,
+          };
+        }
       });
 
       // Create the HTML content for the report
@@ -670,19 +681,25 @@ const TransactionHistory = () => {
           <table style="width: 100%; border-collapse: collapse; border: 2px solid #333; margin-bottom: 20px;">
             <thead>
               <tr style="background-color: #f2f2f2;">
-                <th style="padding: 12px; border: 1px solid #333; text-align: left; width: 50%;">Product Name</th>
-                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 25%;">Remaining Stock</th>
-                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 25%;">Sold Today</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: left; width: 40%;">Brand Name</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 20%;">Products</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 20%;">Total Stock</th>
+                <th style="padding: 12px; border: 1px solid #333; text-align: center; width: 20%;">Sold Today</th>
               </tr>
             </thead>
             <tbody>
-              ${Object.entries(productSales)
+              ${Object.entries(brandSales)
                 .map(
-                  ([product, data], index) => `
+                  ([brand, data], index) => `
                 <tr style="background-color: ${
                   index % 2 === 0 ? "#ffffff" : "#f9f9f9"
                 };">
-                  <td style="padding: 10px; border: 1px solid #333;">${product}</td>
+                  <td style="padding: 10px; border: 1px solid #333; font-weight: ${
+                    data.sold > 0 ? "bold" : "normal"
+                  };">${brand}</td>
+                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">${
+                    data.productCount
+                  }</td>
                   <td style="padding: 10px; border: 1px solid #333; text-align: center;">${
                     data.left
                   }</td>
@@ -694,24 +711,35 @@ const TransactionHistory = () => {
                 )
                 .join("")}
               ${
-                Object.keys(productSales).length === 0
+                Object.keys(brandSales).length === 0
                   ? `
                 <tr>
-                  <td colspan="3" style="padding: 15px; border: 1px solid #333; text-align: center; font-style: italic;">No sales recorded for this date</td>
+                  <td colspan="4" style="padding: 15px; border: 1px solid #333; text-align: center; font-style: italic;">No inventory data available for this date</td>
                 </tr>
               `
                   : ""
               }
             </tbody>
             ${
-              Object.keys(productSales).length > 0
+              Object.keys(brandSales).length > 0
                 ? `
               <tfoot>
                 <tr style="background-color: #f2f2f2; font-weight: bold;">
                   <td style="padding: 10px; border: 1px solid #333;">Total</td>
-                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">-</td>
                   <td style="padding: 10px; border: 1px solid #333; text-align: center;">
-                    ${Object.values(productSales).reduce(
+                    ${Object.values(brandSales).reduce(
+                      (sum, data) => sum + data.productCount,
+                      0
+                    )}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">
+                    ${Object.values(brandSales).reduce(
+                      (sum, data) => sum + data.left,
+                      0
+                    )}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #333; text-align: center;">
+                    ${Object.values(brandSales).reduce(
                       (sum, data) => sum + data.sold,
                       0
                     )}
