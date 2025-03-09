@@ -234,10 +234,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 📞 Contact
-
-For any questions or feedback, please reach out to [your contact information].
-
 ---
 
 Made with ❤️ by Smoky Seven
