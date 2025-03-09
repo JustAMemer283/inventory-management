@@ -613,6 +613,7 @@ const TransactionHistory = () => {
 
       // Fetch current inventory data
       const inventoryData = await productApi.getAll();
+      console.log("Inventory data:", inventoryData);
 
       // Group by brand instead of individual products
       const brandSales = {};
@@ -629,10 +630,20 @@ const TransactionHistory = () => {
         }
 
         // Add both instock and backup stock to the total
-        const instockQuantity = product.stock || 0;
-        const backupQuantity = product.backupStock || 0;
+        // Use the correct field names from the Product model
+        const instockQuantity = parseInt(product.quantity || 0);
+        const backupQuantity = parseInt(product.backupQuantity || 0);
+
+        // Log the values for debugging
+        console.log(
+          `Product: ${product.name}, Brand: ${brand}, Stock: ${instockQuantity}, Backup: ${backupQuantity}`
+        );
+
         brandInventory[brand].totalStock += instockQuantity + backupQuantity;
       });
+
+      // Log the brand inventory for debugging
+      console.log("Brand inventory:", brandInventory);
 
       // Initialize brandSales with all brands from inventory, with 0 sales
       Object.keys(brandInventory).forEach((brand) => {
@@ -667,6 +678,9 @@ const TransactionHistory = () => {
 
         brandSales[brand].sold += sale.quantity;
       });
+
+      // Log the final brand sales data for debugging
+      console.log("Brand sales:", brandSales);
 
       // Create the HTML content for the report
       reportContainer.innerHTML = `
