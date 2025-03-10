@@ -6,27 +6,55 @@ A modern, feature-rich inventory management system built with the MERN stack (Mo
 
 ### Login Screen
 
-<!-- SCREENSHOT 1: Add a screenshot of the login page -->
-
-### Dashboard/Home
-
-<!-- SCREENSHOT 2: Add a screenshot of the dashboard/home page -->
+![Login Screen](/public/screenshots/login.png)
 
 ### Inventory Management
 
-<!-- SCREENSHOT 3: Add a screenshot of the inventory management page -->
+![Inventory Management](/public/screenshots/inventory.png)
+
+### Quick Look Feature
+
+![Quick Look Inventory](/public/screenshots/quick-look-inventory.png)
+
+### Add Product
+
+![Add Product](/public/screenshots/add-product.png)
+
+### Edit Product
+
+![Edit Product](/public/screenshots/edit-product.png)
+
+### Update Stock
+
+![Update Stock](/public/screenshots/update-stock.png)
 
 ### Sales Interface
 
-<!-- SCREENSHOT 4: Add a screenshot of the sales interface -->
+![Record Sale](/public/screenshots/record-sale.png)
+
+### Sale Confirmation
+
+![Sale Record Notifications](/public/screenshots/sale-record-notifs.png)
 
 ### Transaction History
 
-<!-- SCREENSHOT 5: Add a screenshot of the transaction history page with filters -->
+![Transaction History](/public/screenshots/transactions-history.png)
 
-### Reports
+### Advanced Filtering
 
-<!-- SCREENSHOT 6: Add a screenshot of a generated report -->
+![Advanced Filter](/public/screenshots/advanced-filter.png)
+
+### Sales Report
+
+![Copy Sales Report](/public/screenshots/copy-sales-report.png)
+
+### Inventory Report
+
+![Inventory Report Image](/public/screenshots/inventory-report-image.png)
+
+### Swap Mode
+
+![Swap Mode](/public/screenshots/swap-mode.png)
 
 ## ✨ Features
 
@@ -44,7 +72,7 @@ A modern, feature-rich inventory management system built with the MERN stack (Mo
   - Filter products by brand, stock status, and more
   - Sort products by various attributes
 
-<!-- SCREENSHOT 7: Add a screenshot of the inventory search and filter functionality -->
+![Search Inventory](/public/screenshots/search-inventory.png)
 
 ### 💰 Sales Management
 
@@ -60,7 +88,7 @@ A modern, feature-rich inventory management system built with the MERN stack (Mo
   - Sale confirmation with detailed summaries
   - Ability to record historical sales
 
-<!-- SCREENSHOT 8: Add a screenshot of the sales process or confirmation -->
+![Record Sale Process](/public/screenshots/record-sale.png)
 
 ### 📊 Transaction History
 
@@ -75,14 +103,14 @@ A modern, feature-rich inventory management system built with the MERN stack (Mo
   - Employee filters
   - Brand and product filters
 
-<!-- SCREENSHOT 9: Add a screenshot of the transaction filters in action -->
+![Transaction Filters](/public/screenshots/advanced-filter.png)
 
 - **Reporting Tools**
   - Daily sales reports with copy functionality
   - Download reports as images for sharing
   - Delete older transactions with password confirmation
 
-<!-- SCREENSHOT 10: Add a screenshot of the report generation or download feature -->
+![Report Generation](/public/screenshots/copy-sales-report.png)
 
 ### 🔐 User Authentication & Authorization
 
@@ -97,7 +125,7 @@ A modern, feature-rich inventory management system built with the MERN stack (Mo
   - Feature access based on user role
   - Protected routes
 
-<!-- SCREENSHOT 11: Add a screenshot showing role-based features or admin panel -->
+![Login Authentication](/public/screenshots/login.png)
 
 ### 🎨 Modern UI/UX
 
@@ -113,7 +141,7 @@ A modern, feature-rich inventory management system built with the MERN stack (Mo
   - Confirmation dialogs for critical operations
   - Form validation
 
-<!-- SCREENSHOT 12: Add a screenshot showing the responsive design on mobile -->
+![Modern UI](/public/screenshots/inventory.png)
 
 ## 🚀 Getting Started
 
@@ -199,7 +227,7 @@ The application is fully responsive and works seamlessly on:
 - Tablets
 - Mobile phones
 
-<!-- SCREENSHOT 13: Add a screenshot showing the app on different devices -->
+![Responsive Design](/public/screenshots/inventory.png)
 
 ## 🔄 API Endpoints
 
