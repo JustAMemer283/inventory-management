@@ -124,16 +124,34 @@ const Inventory = () => {
     }
   };
 
-  // handle input change
+  // handle input change with validation
   const handleInputChange = (field) => (event) => {
     let value = event.target.value;
-    // Convert numeric fields to numbers
+
+    // Handle numeric fields
     if (["quantity", "backupQuantity", "price"].includes(field)) {
-      // Handle empty string and explicitly convert to number
-      // This ensures 0 is properly handled as a valid value
-      value = value === "" ? "" : Number(value);
+      // Allow empty string for initial input
+      if (value === "") {
+        setFormData({
+          ...formData,
+          [field]: value,
+        });
+        return;
+      }
+
+      // Convert to number and validate
+      const numValue = Number(value);
+      if (isNaN(numValue) || numValue < 0) {
+        return; // Don't update if invalid
+      }
+      value = numValue;
     }
-    console.log(`Setting ${field} to:`, value);
+
+    // For text fields (brand and name), capitalize first letter
+    if (["brand", "name"].includes(field) && typeof value === "string") {
+      value = value.charAt(0).toUpperCase() + value.slice(1);
+    }
+
     setFormData({
       ...formData,
       [field]: value,
@@ -185,18 +203,55 @@ const Inventory = () => {
   // handle form submit
   const handleSubmit = async () => {
     try {
+      // Reset error state
+      setError(null);
+
       // Validate required fields
-      if (!formData.brand || !formData.name) {
-        setError("Brand and Product Name are required");
+      if (!formData.brand?.trim()) {
+        setError("Brand name is required");
+        return;
+      }
+
+      if (!formData.name?.trim()) {
+        setError("Product name is required");
+        return;
+      }
+
+      // Validate numeric fields
+      if (
+        formData.price === "" ||
+        isNaN(formData.price) ||
+        Number(formData.price) < 0
+      ) {
+        setError("Please enter a valid price (0 or greater)");
+        return;
+      }
+
+      // Validate quantity fields - explicitly allow 0
+      if (
+        formData.quantity === "" ||
+        isNaN(formData.quantity) ||
+        Number(formData.quantity) < 0
+      ) {
+        setError("Please enter a valid stock quantity (0 or greater)");
+        return;
+      }
+
+      if (
+        formData.backupQuantity === "" ||
+        isNaN(formData.backupQuantity) ||
+        Number(formData.backupQuantity) < 0
+      ) {
+        setError("Please enter a valid backup quantity (0 or greater)");
         return;
       }
 
       const submissionData = {
-        ...formData,
-        price: Number(formData.price) || 0,
-        quantity: formData.quantity === "" ? 0 : Number(formData.quantity),
-        backupQuantity:
-          formData.backupQuantity === "" ? 0 : Number(formData.backupQuantity),
+        brand: formData.brand.trim(),
+        name: formData.name.trim(),
+        price: Number(formData.price),
+        quantity: Number(formData.quantity),
+        backupQuantity: Number(formData.backupQuantity),
       };
 
       if (editingProduct) {
@@ -766,13 +821,23 @@ const Inventory = () => {
                         onChange={handleInputChange("quantity")}
                         onBlur={() => dismissKeyboard()}
                         fullWidth
+                        required
                         inputProps={{
                           min: 0,
                           step: 1,
                           inputMode: "numeric",
-                          pattern: "[0-9]*",
                         }}
-                        helperText="Enter 0 for out of stock items"
+                        error={
+                          formData.quantity === "" ||
+                          Number(formData.quantity) < 0
+                        }
+                        helperText={
+                          formData.quantity === ""
+                            ? "Stock quantity is required"
+                            : Number(formData.quantity) < 0
+                            ? "Quantity must be 0 or greater"
+                            : "Enter 0 for out of stock items"
+                        }
                       />
                       <TextField
                         label="Backup Quantity"
@@ -781,13 +846,23 @@ const Inventory = () => {
                         onChange={handleInputChange("backupQuantity")}
                         onBlur={() => dismissKeyboard()}
                         fullWidth
+                        required
                         inputProps={{
                           min: 0,
                           step: 1,
                           inputMode: "numeric",
-                          pattern: "[0-9]*",
                         }}
-                        helperText="Enter 0 for no backup stock"
+                        error={
+                          formData.backupQuantity === "" ||
+                          Number(formData.backupQuantity) < 0
+                        }
+                        helperText={
+                          formData.backupQuantity === ""
+                            ? "Backup quantity is required"
+                            : Number(formData.backupQuantity) < 0
+                            ? "Quantity must be 0 or greater"
+                            : "Enter 0 for no backup stock"
+                        }
                       />
                     </>
                   )}
@@ -858,6 +933,10 @@ const Inventory = () => {
                           value.slice(1).toLowerCase(),
                       });
                     }}
+                    error={formData.brand === ""}
+                    helperText={
+                      formData.brand === "" ? "Brand name is required" : ""
+                    }
                   />
                 )}
               />
@@ -868,14 +947,16 @@ const Inventory = () => {
                   const value = e.target.value;
                   setFormData({
                     ...formData,
-                    name:
-                      value.charAt(0).toUpperCase() +
-                      value.slice(1).toLowerCase(),
+                    name: value.charAt(0).toUpperCase() + value.slice(1),
                   });
                 }}
                 onBlur={() => dismissKeyboard()}
                 fullWidth
                 required
+                error={formData.name === ""}
+                helperText={
+                  formData.name === "" ? "Product name is required" : ""
+                }
               />
               <TextField
                 label="Price"
@@ -884,12 +965,20 @@ const Inventory = () => {
                 onChange={handleInputChange("price")}
                 onBlur={() => dismissKeyboard()}
                 fullWidth
+                required
                 inputProps={{
                   min: 0,
                   step: "0.01",
                   inputMode: "decimal",
-                  pattern: "[0-9]*[.]?[0-9]*",
                 }}
+                error={formData.price === "" || Number(formData.price) < 0}
+                helperText={
+                  formData.price === ""
+                    ? "Price is required"
+                    : Number(formData.price) < 0
+                    ? "Price must be 0 or greater"
+                    : "Enter price in dollars"
+                }
               />
               <TextField
                 label="In Stock Quantity"
@@ -898,13 +987,22 @@ const Inventory = () => {
                 onChange={handleInputChange("quantity")}
                 onBlur={() => dismissKeyboard()}
                 fullWidth
+                required
                 inputProps={{
                   min: 0,
                   step: 1,
                   inputMode: "numeric",
-                  pattern: "[0-9]*",
                 }}
-                helperText="Enter 0 for out of stock items"
+                error={
+                  formData.quantity === "" || Number(formData.quantity) < 0
+                }
+                helperText={
+                  formData.quantity === ""
+                    ? "Stock quantity is required"
+                    : Number(formData.quantity) < 0
+                    ? "Quantity must be 0 or greater"
+                    : "Enter 0 for out of stock items"
+                }
               />
               <TextField
                 label="Backup Quantity"
@@ -913,13 +1011,23 @@ const Inventory = () => {
                 onChange={handleInputChange("backupQuantity")}
                 onBlur={() => dismissKeyboard()}
                 fullWidth
+                required
                 inputProps={{
                   min: 0,
                   step: 1,
                   inputMode: "numeric",
-                  pattern: "[0-9]*",
                 }}
-                helperText="Enter 0 for no backup stock"
+                error={
+                  formData.backupQuantity === "" ||
+                  Number(formData.backupQuantity) < 0
+                }
+                helperText={
+                  formData.backupQuantity === ""
+                    ? "Backup quantity is required"
+                    : Number(formData.backupQuantity) < 0
+                    ? "Quantity must be 0 or greater"
+                    : "Enter 0 for no backup stock"
+                }
               />
             </Box>
           </DialogContent>
