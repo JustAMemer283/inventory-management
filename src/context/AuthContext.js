@@ -1,4 +1,10 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+} from "react";
 import { authApi } from "../services/api";
 
 // create auth context
@@ -10,14 +16,19 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastChecked, setLastChecked] = useState(0);
 
-  // check authentication status on mount
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  // check if user is authenticated - memoized with useCallback
+  const checkAuth = useCallback(async () => {
+    // Prevent excessive auth checks (limit to once every 5 seconds)
+    const now = Date.now();
+    if (now - lastChecked < 5000 && !loading) {
+      return;
+    }
 
-  // check if user is authenticated
-  const checkAuth = async () => {
+    setLastChecked(now);
+    setLoading(true);
+
     try {
       const userData = await authApi.getCurrentUser();
       setUser(userData);
@@ -28,7 +39,12 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [lastChecked, loading]);
+
+  // check authentication status on mount
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   // login function
   const login = async (credentials) => {

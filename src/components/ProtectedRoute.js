@@ -8,14 +8,11 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading, checkAuth } = useAuth();
   const location = useLocation();
 
-  // Re-check auth on direct route access
+  // Re-check auth on direct route access or when component mounts
   useEffect(() => {
-    if (!user && !loading) {
-      // If no user and not loading, try to check auth again
-      // This helps with direct URL access
-      checkAuth();
-    }
-  }, [user, loading, checkAuth]);
+    // Always check auth when the component mounts or the location changes
+    checkAuth();
+  }, [location.pathname, checkAuth]);
 
   // show loading state with spinner
   if (loading) {

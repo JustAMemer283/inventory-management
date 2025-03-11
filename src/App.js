@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useParams,
 } from "react-router-dom";
 import { ThemeProvider, CssBaseline, Box } from "@mui/material";
 import { AuthProvider } from "./context/AuthContext";
@@ -15,6 +16,26 @@ import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
 import TransactionHistory from "./pages/TransactionHistory";
 import theme from "./theme";
+
+// Dynamic route handler component
+const DynamicRouteHandler = () => {
+  const { slug } = useParams();
+
+  // Determine which component to render based on the slug
+  // This is a simple implementation - you may need to adjust based on your actual requirements
+  switch (slug) {
+    case "inventory":
+      return <Inventory />;
+    case "sales":
+      return <Sales />;
+    case "transactions":
+      return <TransactionHistory />;
+    case "home":
+      return <Home />;
+    default:
+      return <Navigate to="/sales" replace />;
+  }
+};
 
 // app component
 const App = () => {
@@ -66,6 +87,16 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <TransactionHistory />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Dynamic route handler for direct URL access */}
+                <Route
+                  path="/:slug"
+                  element={
+                    <ProtectedRoute>
+                      <DynamicRouteHandler />
                     </ProtectedRoute>
                   }
                 />

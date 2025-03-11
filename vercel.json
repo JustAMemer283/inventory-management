@@ -24,7 +24,11 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/build/index.html"
+      "dest": "/build/index.html",
+      "continue": true
     }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 } 
