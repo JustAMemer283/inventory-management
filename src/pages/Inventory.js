@@ -217,41 +217,14 @@ const Inventory = () => {
         return;
       }
 
-      // Validate numeric fields
-      if (
-        formData.price === "" ||
-        isNaN(formData.price) ||
-        Number(formData.price) < 0
-      ) {
-        setError("Please enter a valid price (0 or greater)");
-        return;
-      }
-
-      // Validate quantity fields - explicitly allow 0
-      if (
-        formData.quantity === "" ||
-        isNaN(formData.quantity) ||
-        Number(formData.quantity) < 0
-      ) {
-        setError("Please enter a valid stock quantity (0 or greater)");
-        return;
-      }
-
-      if (
-        formData.backupQuantity === "" ||
-        isNaN(formData.backupQuantity) ||
-        Number(formData.backupQuantity) < 0
-      ) {
-        setError("Please enter a valid backup quantity (0 or greater)");
-        return;
-      }
-
       const submissionData = {
         brand: formData.brand.trim(),
         name: formData.name.trim(),
-        price: Number(formData.price),
-        quantity: Number(formData.quantity),
-        backupQuantity: Number(formData.backupQuantity),
+        // Use 0 as default for numeric fields if empty
+        price: formData.price === "" ? 0 : Number(formData.price),
+        quantity: formData.quantity === "" ? 0 : Number(formData.quantity),
+        backupQuantity:
+          formData.backupQuantity === "" ? 0 : Number(formData.backupQuantity),
       };
 
       if (editingProduct) {
@@ -821,23 +794,12 @@ const Inventory = () => {
                         onChange={handleInputChange("quantity")}
                         onBlur={() => dismissKeyboard()}
                         fullWidth
-                        required
                         inputProps={{
                           min: 0,
                           step: 1,
                           inputMode: "numeric",
                         }}
-                        error={
-                          formData.quantity === "" ||
-                          Number(formData.quantity) < 0
-                        }
-                        helperText={
-                          formData.quantity === ""
-                            ? "Stock quantity is required"
-                            : Number(formData.quantity) < 0
-                            ? "Quantity must be 0 or greater"
-                            : "Enter 0 for out of stock items"
-                        }
+                        helperText="Enter initial stock quantity (defaults to 0 if empty)"
                       />
                       <TextField
                         label="Backup Quantity"
@@ -846,23 +808,12 @@ const Inventory = () => {
                         onChange={handleInputChange("backupQuantity")}
                         onBlur={() => dismissKeyboard()}
                         fullWidth
-                        required
                         inputProps={{
                           min: 0,
                           step: 1,
                           inputMode: "numeric",
                         }}
-                        error={
-                          formData.backupQuantity === "" ||
-                          Number(formData.backupQuantity) < 0
-                        }
-                        helperText={
-                          formData.backupQuantity === ""
-                            ? "Backup quantity is required"
-                            : Number(formData.backupQuantity) < 0
-                            ? "Quantity must be 0 or greater"
-                            : "Enter 0 for no backup stock"
-                        }
+                        helperText="Enter backup quantity (defaults to 0 if empty)"
                       />
                     </>
                   )}
@@ -965,20 +916,12 @@ const Inventory = () => {
                 onChange={handleInputChange("price")}
                 onBlur={() => dismissKeyboard()}
                 fullWidth
-                required
                 inputProps={{
                   min: 0,
                   step: "0.01",
                   inputMode: "decimal",
                 }}
-                error={formData.price === "" || Number(formData.price) < 0}
-                helperText={
-                  formData.price === ""
-                    ? "Price is required"
-                    : Number(formData.price) < 0
-                    ? "Price must be 0 or greater"
-                    : "Enter price in dollars"
-                }
+                helperText="Enter price in dollars (defaults to 0 if empty)"
               />
               <TextField
                 label="In Stock Quantity"
@@ -987,22 +930,12 @@ const Inventory = () => {
                 onChange={handleInputChange("quantity")}
                 onBlur={() => dismissKeyboard()}
                 fullWidth
-                required
                 inputProps={{
                   min: 0,
                   step: 1,
                   inputMode: "numeric",
                 }}
-                error={
-                  formData.quantity === "" || Number(formData.quantity) < 0
-                }
-                helperText={
-                  formData.quantity === ""
-                    ? "Stock quantity is required"
-                    : Number(formData.quantity) < 0
-                    ? "Quantity must be 0 or greater"
-                    : "Enter 0 for out of stock items"
-                }
+                helperText="Enter initial stock quantity (defaults to 0 if empty)"
               />
               <TextField
                 label="Backup Quantity"
@@ -1011,23 +944,12 @@ const Inventory = () => {
                 onChange={handleInputChange("backupQuantity")}
                 onBlur={() => dismissKeyboard()}
                 fullWidth
-                required
                 inputProps={{
                   min: 0,
                   step: 1,
                   inputMode: "numeric",
                 }}
-                error={
-                  formData.backupQuantity === "" ||
-                  Number(formData.backupQuantity) < 0
-                }
-                helperText={
-                  formData.backupQuantity === ""
-                    ? "Backup quantity is required"
-                    : Number(formData.backupQuantity) < 0
-                    ? "Quantity must be 0 or greater"
-                    : "Enter 0 for no backup stock"
-                }
+                helperText="Enter backup quantity (defaults to 0 if empty)"
               />
             </Box>
           </DialogContent>
