@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const session = require("express-session");
+const MongoStore = require("connect-mongo");
 const path = require("path");
 const productRoutes = require("./routes/products");
 const authRoutes = require("./routes/auth");
@@ -32,33 +33,16 @@ app.use(
 );
 
 app.use(express.json());
-app.use(
-  session({
-    secret: process.env.JWT_SECRET || "inventory_management_secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  })
-);
 
 // connect to mongodb
 const connectToDatabase = async () => {
   try {
     console.log("Attempting to connect to MongoDB Atlas...");
     await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 10000, // Increased timeout to 10s
       socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
       connectTimeoutMS: 10000, // Connection timeout
       heartbeatFrequencyMS: 30000, // Check server status every 30 seconds
-      retryWrites: true,
-      w: "majority",
       maxPoolSize: 10, // Limit connection pool size
     });
     console.log("MongoDB Atlas connected:", mongoose.connection.host);
@@ -84,7 +68,27 @@ const connectToDatabase = async () => {
 };
 
 // Try to connect to the database
-connectToDatabase();
+const dbConnection = connectToDatabase();
+
+// Configure session middleware with MongoDB store
+app.use(
+  session({
+    secret: process.env.JWT_SECRET || "inventory_management_secret",
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI,
+      ttl: 24 * 60 * 60, // Session TTL (1 day)
+      autoRemove: "native", // Use MongoDB's TTL index
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
 
 // Handle MongoDB connection errors after initial connection
 mongoose.connection.on("error", (err) => {

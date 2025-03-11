@@ -16,30 +16,27 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [lastChecked, setLastChecked] = useState(0);
+  const [initialized, setInitialized] = useState(false);
 
   // check if user is authenticated - memoized with useCallback
   const checkAuth = useCallback(async () => {
-    // Prevent excessive auth checks (limit to once every 5 seconds)
-    const now = Date.now();
-    if (now - lastChecked < 5000 && !loading) {
-      return;
+    if (!initialized) {
+      setLoading(true);
+      try {
+        const userData = await authApi.getCurrentUser();
+        setUser(userData);
+      } catch (err) {
+        // Only clear user data if it's an authentication error
+        if (err.response && err.response.status === 401) {
+          setUser(null);
+        }
+        console.error("Auth check error:", err);
+      } finally {
+        setLoading(false);
+        setInitialized(true);
+      }
     }
-
-    setLastChecked(now);
-    setLoading(true);
-
-    try {
-      const userData = await authApi.getCurrentUser();
-      setUser(userData);
-    } catch (err) {
-      // Clear user data on auth error
-      setUser(null);
-      console.error("Auth check error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [lastChecked, loading]);
+  }, [initialized]);
 
   // check authentication status on mount
   useEffect(() => {
@@ -49,6 +46,7 @@ export const AuthProvider = ({ children }) => {
   // login function
   const login = async (credentials) => {
     try {
+      setLoading(true);
       const response = await authApi.login(credentials);
       setUser(response.user);
       setError(null);
@@ -56,17 +54,23 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       setError(err.message);
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   // logout function
   const logout = async () => {
     try {
+      setLoading(true);
       await authApi.logout();
       setUser(null);
       setError(null);
+      setInitialized(false); // Reset initialization state
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,7 +82,13 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     checkAuth,
+    initialized,
   };
+
+  // Don't render children until initial auth check is complete
+  if (!initialized && loading) {
+    return null;
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -124,11 +124,13 @@ const Inventory = () => {
     }
   };
 
-  // handle form input change
+  // handle input change
   const handleInputChange = (field) => (event) => {
     let value = event.target.value;
     // Convert numeric fields to numbers
     if (["quantity", "backupQuantity", "price"].includes(field)) {
+      // Handle empty string and explicitly convert to number
+      // This ensures 0 is properly handled as a valid value
       value = value === "" ? "" : Number(value);
     }
     console.log(`Setting ${field} to:`, value);
@@ -192,8 +194,9 @@ const Inventory = () => {
       const submissionData = {
         ...formData,
         price: Number(formData.price) || 0,
-        quantity: Number(formData.quantity) || 0,
-        backupQuantity: Number(formData.backupQuantity) || 0,
+        quantity: formData.quantity === "" ? 0 : Number(formData.quantity),
+        backupQuantity:
+          formData.backupQuantity === "" ? 0 : Number(formData.backupQuantity),
       };
 
       if (editingProduct) {
@@ -757,40 +760,34 @@ const Inventory = () => {
                   ) : (
                     <>
                       <TextField
-                        label="Add to Stock"
+                        label="In Stock Quantity"
                         type="number"
-                        value={updateQuantities.quantity}
-                        onChange={(e) =>
-                          setUpdateQuantities({
-                            ...updateQuantities,
-                            quantity: e.target.value,
-                          })
-                        }
+                        value={formData.quantity}
+                        onChange={handleInputChange("quantity")}
                         onBlur={() => dismissKeyboard()}
                         fullWidth
                         inputProps={{
                           min: 0,
+                          step: 1,
                           inputMode: "numeric",
                           pattern: "[0-9]*",
                         }}
+                        helperText="Enter 0 for out of stock items"
                       />
                       <TextField
-                        label="Add to Backup"
+                        label="Backup Quantity"
                         type="number"
-                        value={updateQuantities.backupQuantity}
-                        onChange={(e) =>
-                          setUpdateQuantities({
-                            ...updateQuantities,
-                            backupQuantity: e.target.value,
-                          })
-                        }
+                        value={formData.backupQuantity}
+                        onChange={handleInputChange("backupQuantity")}
                         onBlur={() => dismissKeyboard()}
                         fullWidth
                         inputProps={{
                           min: 0,
+                          step: 1,
                           inputMode: "numeric",
                           pattern: "[0-9]*",
                         }}
+                        helperText="Enter 0 for no backup stock"
                       />
                     </>
                   )}
@@ -903,9 +900,11 @@ const Inventory = () => {
                 fullWidth
                 inputProps={{
                   min: 0,
+                  step: 1,
                   inputMode: "numeric",
                   pattern: "[0-9]*",
                 }}
+                helperText="Enter 0 for out of stock items"
               />
               <TextField
                 label="Backup Quantity"
@@ -916,9 +915,11 @@ const Inventory = () => {
                 fullWidth
                 inputProps={{
                   min: 0,
+                  step: 1,
                   inputMode: "numeric",
                   pattern: "[0-9]*",
                 }}
+                helperText="Enter 0 for no backup stock"
               />
             </Box>
           </DialogContent>
