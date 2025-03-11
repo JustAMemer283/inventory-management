@@ -12,9 +12,13 @@ import {
   useTheme,
   useMediaQuery,
   Drawer,
+  Tooltip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { useAuth } from "../context/AuthContext";
+import { useThemeContext } from "../context/ThemeContext";
 
 // navigation component
 const Navigation = () => {
@@ -22,6 +26,7 @@ const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
+  const { themeMode, toggleTheme } = useThemeContext();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
@@ -55,15 +60,20 @@ const Navigation = () => {
           key={item.label}
           onClick={item.action || (() => navigate(item.path))}
           sx={{
-            color: item.color === "error" ? "#ff4d4d" : "#fff",
-            backgroundColor: isActive(item.path) ? "#4477ff" : "transparent",
+            color:
+              item.color === "error"
+                ? theme.palette.error.main
+                : theme.palette.text.primary,
+            backgroundColor: isActive(item.path)
+              ? theme.palette.primary.main
+              : "transparent",
             "&:hover": {
               backgroundColor:
                 item.color === "error"
-                  ? "rgba(255, 77, 77, 0.1)"
+                  ? `${theme.palette.error.main}10`
                   : isActive(item.path)
-                  ? "#3366cc"
-                  : "rgba(255, 255, 255, 0.1)",
+                  ? theme.palette.primary.dark
+                  : `${theme.palette.text.primary}10`,
             },
             borderRadius: "8px",
             textTransform: "none",
@@ -75,6 +85,13 @@ const Navigation = () => {
           {item.label}
         </Button>
       ))}
+      <Tooltip
+        title={`Switch to ${themeMode === "dark" ? "light" : "dark"} theme`}
+      >
+        <IconButton onClick={toggleTheme} color="inherit" sx={{ ml: 1 }}>
+          {themeMode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
+        </IconButton>
+      </Tooltip>
     </>
   );
 
@@ -83,8 +100,11 @@ const Navigation = () => {
       position="static"
       elevation={0}
       sx={{
-        backgroundColor: "#141414",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+        backgroundColor: theme.palette.background.paper,
+        borderBottom:
+          theme.palette.mode === "dark"
+            ? "1px solid rgba(255, 255, 255, 0.1)"
+            : "1px solid rgba(0, 0, 0, 0.1)",
       }}
     >
       <Toolbar sx={{ justifyContent: "space-between", height: "70px" }}>
@@ -95,6 +115,7 @@ const Navigation = () => {
             flexGrow: 1,
             fontWeight: "bold",
             fontSize: { xs: "1.1rem", sm: "1.25rem" },
+            color: theme.palette.text.primary,
           }}
           onClick={() => navigate("/")}
         >
@@ -110,8 +131,26 @@ const Navigation = () => {
                     display: "flex",
                     justifyContent: "flex-end",
                     width: "100%",
+                    alignItems: "center",
                   }}
                 >
+                  <Tooltip
+                    title={`Switch to ${
+                      themeMode === "dark" ? "light" : "dark"
+                    } theme`}
+                  >
+                    <IconButton
+                      onClick={toggleTheme}
+                      color="inherit"
+                      sx={{ mr: 1 }}
+                    >
+                      {themeMode === "dark" ? (
+                        <Brightness7Icon />
+                      ) : (
+                        <Brightness4Icon />
+                      )}
+                    </IconButton>
+                  </Tooltip>
                   <IconButton
                     color="inherit"
                     aria-label="open drawer"
@@ -127,7 +166,7 @@ const Navigation = () => {
                   onClose={handleDrawerToggle}
                   PaperProps={{
                     sx: {
-                      backgroundColor: "#141414",
+                      backgroundColor: theme.palette.background.paper,
                       width: 200,
                       p: 2,
                     },
@@ -143,7 +182,11 @@ const Navigation = () => {
                         fontWeight: "bold",
                         mb: 2,
                         pb: 2,
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                        borderBottom:
+                          theme.palette.mode === "dark"
+                            ? "1px solid rgba(255, 255, 255, 0.1)"
+                            : "1px solid rgba(0, 0, 0, 0.1)",
+                        color: theme.palette.text.primary,
                       }}
                     >
                       Smoky Seven
@@ -161,17 +204,20 @@ const Navigation = () => {
                           handleDrawerToggle();
                         }}
                         sx={{
-                          color: item.color === "error" ? "#ff4d4d" : "#fff",
+                          color:
+                            item.color === "error"
+                              ? theme.palette.error.main
+                              : theme.palette.text.primary,
                           backgroundColor: isActive(item.path)
-                            ? "#4477ff"
+                            ? theme.palette.primary.main
                             : "transparent",
                           "&:hover": {
                             backgroundColor:
                               item.color === "error"
-                                ? "rgba(255, 77, 77, 0.1)"
+                                ? `${theme.palette.error.main}10`
                                 : isActive(item.path)
-                                ? "#3366cc"
-                                : "rgba(255, 255, 255, 0.1)",
+                                ? theme.palette.primary.dark
+                                : `${theme.palette.text.primary}10`,
                           },
                           justifyContent: "flex-start",
                           textTransform: "none",

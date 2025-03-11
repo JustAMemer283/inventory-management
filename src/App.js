@@ -6,8 +6,9 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
-import { ThemeProvider, CssBaseline, Box } from "@mui/material";
+import { CssBaseline, Box } from "@mui/material";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navigation from "./components/Navigation";
 import Login from "./pages/Login";
@@ -15,7 +16,6 @@ import Home from "./pages/Home";
 import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
 import TransactionHistory from "./pages/TransactionHistory";
-import theme from "./theme";
 
 // Dynamic route handler component
 const DynamicRouteHandler = () => {
@@ -40,74 +40,67 @@ const DynamicRouteHandler = () => {
 // app component
 const App = () => {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider>
       <CssBaseline />
-      <Box
-        sx={{
-          minHeight: "100vh",
-          backgroundColor: theme.palette.background.default,
-        }}
-      >
-        <AuthProvider>
-          <Router>
-            <Navigation />
-            <Box sx={{ p: 3 }}>
-              <Routes>
-                {/* public routes - Login component has internal redirect logic */}
-                <Route path="/login" element={<Login />} />
+      <AuthProvider>
+        <Router>
+          <Navigation />
+          <Box sx={{ p: 3, minHeight: "calc(100vh - 70px)" }}>
+            <Routes>
+              {/* public routes - Login component has internal redirect logic */}
+              <Route path="/login" element={<Login />} />
 
-                {/* protected routes */}
-                <Route path="/" element={<Navigate to="/sales" replace />} />
-                <Route
-                  path="/home"
-                  element={
-                    <ProtectedRoute>
-                      <Home />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/inventory"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <Inventory />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/sales"
-                  element={
-                    <ProtectedRoute>
-                      <Sales />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/transactions"
-                  element={
-                    <ProtectedRoute>
-                      <TransactionHistory />
-                    </ProtectedRoute>
-                  }
-                />
+              {/* protected routes */}
+              <Route path="/" element={<Navigate to="/sales" replace />} />
+              <Route
+                path="/home"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/inventory"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <Inventory />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales"
+                element={
+                  <ProtectedRoute>
+                    <Sales />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/transactions"
+                element={
+                  <ProtectedRoute>
+                    <TransactionHistory />
+                  </ProtectedRoute>
+                }
+              />
 
-                {/* Dynamic route handler for direct URL access */}
-                <Route
-                  path="/:slug"
-                  element={
-                    <ProtectedRoute>
-                      <DynamicRouteHandler />
-                    </ProtectedRoute>
-                  }
-                />
+              {/* Dynamic route handler for direct URL access */}
+              <Route
+                path="/:slug"
+                element={
+                  <ProtectedRoute>
+                    <DynamicRouteHandler />
+                  </ProtectedRoute>
+                }
+              />
 
-                {/* catch all route */}
-                <Route path="*" element={<Navigate to="/sales" replace />} />
-              </Routes>
-            </Box>
-          </Router>
-        </AuthProvider>
-      </Box>
+              {/* catch all route */}
+              <Route path="*" element={<Navigate to="/sales" replace />} />
+            </Routes>
+          </Box>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 };
