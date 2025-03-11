@@ -23,7 +23,24 @@ const transactionSchema = new mongoose.Schema(
       required: function () {
         return this.type === "SALE" || this.type === "ADD";
       },
-      min: 1,
+      min: 0,
+      validate: {
+        validator: function (v) {
+          if (this.type === "SALE") {
+            return v > 0;
+          }
+          return v >= 0;
+        },
+        message: (props) => {
+          if (props.value < 0) {
+            return `Quantity cannot be negative`;
+          }
+          if (props.value === 0 && this.type === "SALE") {
+            return `Sale quantity must be greater than 0`;
+          }
+          return `Invalid quantity`;
+        },
+      },
     },
     previousData: {
       type: Object,
